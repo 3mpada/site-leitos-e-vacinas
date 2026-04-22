@@ -1,0 +1,1933 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>SaúdeES — Vacinação & Leitos Hospitalares</title>
+  <link href="https://fonts.googleapis.com/css2?family=Sora:wght@300;400;600;700;800&family=IBM+Plex+Mono:wght@400;600&display=swap" rel="stylesheet" />
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css" />
+  <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <style>
+    /* ===== CSS VARIABLES ===== */
+    :root {
+      --bg: #f0f4f8;
+      --bg2: #ffffff;
+      --bg3: #e2eaf3;
+      --text: #0d1b2a;
+      --text2: #3a5068;
+      --text3: #647d96;
+      --primary: #1565c0;
+      --primary-light: #1e88e5;
+      --accent: #00acc1;
+      --success: #2e7d32;
+      --danger: #c62828;
+      --warning: #e65100;
+      --border: rgba(21,101,192,0.12);
+      --shadow: 0 4px 24px rgba(21,101,192,0.10);
+      --shadow-lg: 0 12px 48px rgba(21,101,192,0.16);
+      --radius: 16px;
+      --radius-sm: 8px;
+      --nav-h: 68px;
+      --transition: 0.3s cubic-bezier(.4,0,.2,1);
+    }
+    [data-theme="dark"] {
+      --bg: #060e18;
+      --bg2: #0d1b2a;
+      --bg3: #122033;
+      --text: #e8f0fe;
+      --text2: #90b4d4;
+      --text3: #5a8aae;
+      --primary: #4d90fe;
+      --primary-light: #64b5f6;
+      --accent: #26c6da;
+      --success: #4caf50;
+      --danger: #ef5350;
+      --warning: #ff9800;
+      --border: rgba(77,144,254,0.14);
+      --shadow: 0 4px 24px rgba(0,0,0,0.4);
+      --shadow-lg: 0 12px 48px rgba(0,0,0,0.5);
+    }
+
+    /* ===== RESET & BASE ===== */
+    *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+    html { scroll-behavior: smooth; }
+    body {
+      font-family: 'Sora', sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      line-height: 1.6;
+      transition: background var(--transition), color var(--transition);
+    }
+    a { color: var(--primary); text-decoration: none; }
+    img { max-width: 100%; }
+
+    /* ===== NAVBAR ===== */
+    nav {
+      position: fixed; top: 0; left: 0; right: 0; z-index: 1000;
+      height: var(--nav-h);
+      background: rgba(255,255,255,0.95);
+      border-bottom: 1px solid var(--border);
+      box-shadow: var(--shadow);
+      display: flex; align-items: center; padding: 0 24px;
+      gap: 12px;
+      transition: background var(--transition);
+      backdrop-filter: blur(12px);
+      -webkit-backdrop-filter: blur(12px);
+    }
+    [data-theme="dark"] nav {
+      background: rgba(13,27,42,0.95);
+    }
+    .nav-logo {
+      display: flex; align-items: center; gap: 10px;
+      font-weight: 800; font-size: 1.1rem; color: var(--primary);
+      flex-shrink: 0;
+    }
+    .nav-logo-icon {
+      width: 34px; height: 34px; border-radius: 8px;
+      background: linear-gradient(135deg, #1565c0, #00acc1);
+      display: flex; align-items: center; justify-content: center;
+      color: #fff; font-size: 0.95rem;
+    }
+
+    /* ===== TAB NAVIGATION ===== */
+    .tab-nav {
+      display: flex; gap: 4px; background: var(--bg3);
+      border-radius: 10px; padding: 4px; margin: 0 auto;
+    }
+    .tab-btn {
+      display: flex; align-items: center; gap: 7px;
+      padding: 8px 18px; border-radius: 7px; border: none;
+      background: transparent; color: var(--text2);
+      font-family: 'Sora', sans-serif; font-size: 0.83rem;
+      font-weight: 600; cursor: pointer;
+      transition: all var(--transition); white-space: nowrap;
+    }
+    .tab-btn:hover { color: var(--primary); background: rgba(255,255,255,0.6); }
+    .tab-btn.active {
+      background: #fff; color: var(--primary);
+      box-shadow: 0 2px 10px rgba(21,101,192,0.15);
+    }
+    [data-theme="dark"] .tab-btn.active { background: var(--bg2); }
+
+    .nav-actions { display: flex; align-items: center; gap: 8px; flex-shrink: 0; }
+    .nav-links-small {
+      display: flex; gap: 2px;
+    }
+    .nav-links-small a {
+      font-size: 0.75rem; font-weight: 600; color: var(--text2);
+      padding: 5px 9px; border-radius: 6px;
+      transition: background var(--transition), color var(--transition);
+    }
+    .nav-links-small a:hover { background: var(--bg3); color: var(--primary); }
+    .theme-btn {
+      background: var(--bg3); border: none; cursor: pointer;
+      width: 38px; height: 38px; border-radius: 50%;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1rem; color: var(--text2);
+      transition: background var(--transition), color var(--transition);
+    }
+    .theme-btn:hover { background: var(--primary); color: #fff; }
+
+    /* ===== PAGE VIEWS ===== */
+    main { padding-top: var(--nav-h); }
+    .page { display: none; }
+    .page.active { display: block; }
+
+    /* ===== HERO ===== */
+    .hero {
+      background: linear-gradient(135deg, #0d47a1 0%, #1565c0 40%, #0097a7 100%);
+      color: #fff; padding: 80px 24px 64px;
+      position: relative; overflow: hidden;
+    }
+    .hero::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='60' height='60' viewBox='0 0 60 60' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='none' fill-rule='evenodd'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M36 34v-4h-2v4h-4v2h4v4h2v-4h4v-2h-4zm0-30V0h-2v4h-4v2h4v4h2V6h4V4h-4zM6 34v-4H4v4H0v2h4v4h2v-4h4v-2H6zM6 4V0H4v4H0v2h4v4h2V6h4V4H6z'/%3E%3C/g%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-inner { max-width: 960px; margin: 0 auto; position: relative; }
+    .hero-badge {
+      display: inline-flex; align-items: center; gap: 8px;
+      background: rgba(255,255,255,0.15); border: 1px solid rgba(255,255,255,0.25);
+      padding: 6px 14px; border-radius: 99px;
+      font-size: 0.78rem; font-weight: 600; letter-spacing: 0.05em;
+      text-transform: uppercase; margin-bottom: 20px;
+    }
+    .hero h1 {
+      font-size: clamp(2rem, 5vw, 3.2rem); font-weight: 800;
+      line-height: 1.15; margin-bottom: 16px;
+    }
+    .hero h1 span { color: #80deea; }
+    .hero p {
+      font-size: 1.05rem; opacity: 0.88; max-width: 640px;
+      margin-bottom: 36px; font-weight: 300;
+    }
+    .hero-stats { display: flex; flex-wrap: wrap; gap: 16px; }
+    .hero-stat {
+      background: rgba(255,255,255,0.12);
+      border: 1px solid rgba(255,255,255,0.2);
+      border-radius: 12px; padding: 16px 22px;
+      min-width: 140px;
+      transition: background var(--transition), transform var(--transition);
+    }
+    .hero-stat:hover { background: rgba(255,255,255,0.2); transform: translateY(-2px); }
+    .hero-stat .val {
+      font-size: 1.9rem; font-weight: 800;
+      font-family: 'IBM Plex Mono', monospace;
+    }
+    .hero-stat .lbl { font-size: 0.72rem; opacity: 0.8; text-transform: uppercase; letter-spacing: 0.07em; }
+    .hero-stat.danger .val { color: #ff8a80; }
+    .hero-stat.warn .val { color: #ffd740; }
+    .hero-stat.ok .val { color: #69f0ae; }
+
+    /* ===== LEITOS HERO ===== */
+    .hero-leitos {
+      background: linear-gradient(135deg, #004d40 0%, #00695c 45%, #0277bd 100%);
+      color: #fff; padding: 80px 24px 64px;
+      position: relative; overflow: hidden;
+    }
+    .hero-leitos::before {
+      content: '';
+      position: absolute; inset: 0;
+      background: url("data:image/svg+xml,%3Csvg width='40' height='40' viewBox='0 0 40 40' xmlns='http://www.w3.org/2000/svg'%3E%3Cg fill='%23ffffff' fill-opacity='0.04'%3E%3Cpath d='M0 0h20v20H0zm20 20h20v20H20z'/%3E%3C/g%3E%3C/svg%3E");
+    }
+    .hero-leitos h1 span { color: #80cbc4; }
+
+    /* ===== SECTION ===== */
+    section { padding: 72px 24px; }
+    section:nth-child(even) { background: var(--bg2); }
+    .section-inner { max-width: 1140px; margin: 0 auto; }
+    .section-label {
+      font-size: 0.72rem; font-weight: 700; letter-spacing: 0.1em;
+      text-transform: uppercase; color: var(--accent);
+      margin-bottom: 10px; display: flex; align-items: center; gap: 8px;
+    }
+    .section-label::after { content: ''; flex: 1; height: 1px; background: var(--border); max-width: 80px; }
+    h2 { font-size: clamp(1.5rem, 3vw, 2.1rem); font-weight: 800; margin-bottom: 12px; }
+    .section-desc { color: var(--text2); max-width: 700px; margin-bottom: 40px; font-size: 0.96rem; }
+
+    /* ===== CARDS ===== */
+    .cards-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
+      gap: 20px;
+    }
+    .card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px 24px;
+      box-shadow: var(--shadow);
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    section:nth-child(even) .card { background: var(--bg3); }
+    .card:hover { transform: translateY(-4px); box-shadow: var(--shadow-lg); }
+    .card-icon {
+      width: 44px; height: 44px; border-radius: 10px;
+      display: flex; align-items: center; justify-content: center;
+      font-size: 1.2rem; margin-bottom: 14px;
+      background: rgba(21,101,192,0.1); color: var(--primary);
+    }
+    .card h3 { font-size: 0.9rem; font-weight: 700; margin-bottom: 8px; }
+    .card p { font-size: 0.85rem; color: var(--text2); line-height: 1.65; }
+
+    /* ===== META PROGRESS ===== */
+    .meta-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 32px;
+      box-shadow: var(--shadow); margin-bottom: 32px;
+    }
+    .meta-header { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; }
+    .meta-header h3 { font-size: 1rem; font-weight: 700; }
+    .meta-badge {
+      padding: 6px 14px; border-radius: 99px;
+      font-size: 0.76rem; font-weight: 700; letter-spacing: 0.05em;
+      text-transform: uppercase;
+    }
+    .badge-danger { background: rgba(198,40,40,0.12); color: var(--danger); border: 1px solid rgba(198,40,40,0.25); }
+    .badge-ok { background: rgba(46,125,50,0.12); color: var(--success); border: 1px solid rgba(46,125,50,0.25); }
+    .badge-warn { background: rgba(230,81,0,0.12); color: var(--warning); border: 1px solid rgba(230,81,0,0.25); }
+    .progress-wrap { position: relative; }
+    .progress-bar-bg {
+      height: 14px; background: var(--bg3); border-radius: 99px; overflow: hidden;
+      position: relative;
+    }
+    .progress-bar-fill {
+      height: 100%; border-radius: 99px;
+      background: linear-gradient(90deg, #1565c0, #00acc1);
+      transition: width 1.5s cubic-bezier(.4,0,.2,1);
+      width: 0;
+    }
+    .progress-meta { display: flex; justify-content: space-between; margin-top: 8px; font-size: 0.78rem; color: var(--text3); font-family: 'IBM Plex Mono', monospace; }
+    .meta-row { display: flex; flex-wrap: wrap; gap: 16px; margin-top: 20px; }
+    .meta-item {
+      flex: 1; min-width: 140px; background: var(--bg3); border-radius: 10px;
+      padding: 14px 18px;
+    }
+    .meta-item .mi-val {
+      font-size: 1.5rem; font-weight: 800;
+      font-family: 'IBM Plex Mono', monospace; color: var(--primary);
+    }
+    .meta-item .mi-lbl { font-size: 0.72rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; }
+
+    /* ===== TABLE ===== */
+    .table-controls {
+      display: flex; flex-wrap: wrap; gap: 12px; margin-bottom: 20px; align-items: center;
+    }
+    .search-box { position: relative; flex: 1; min-width: 200px; }
+    .search-box i {
+      position: absolute; left: 12px; top: 50%; transform: translateY(-50%);
+      color: var(--text3); font-size: 0.9rem;
+    }
+    .search-box input {
+      width: 100%; padding: 10px 14px 10px 36px;
+      border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg2); color: var(--text);
+      font-family: 'Sora', sans-serif; font-size: 0.88rem;
+      transition: border-color var(--transition);
+    }
+    .search-box input:focus { outline: none; border-color: var(--primary); }
+    .filter-select {
+      padding: 10px 14px; border: 1px solid var(--border); border-radius: 8px;
+      background: var(--bg2); color: var(--text);
+      font-family: 'Sora', sans-serif; font-size: 0.88rem; cursor: pointer;
+    }
+    .filter-select:focus { outline: none; border-color: var(--primary); }
+    .table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
+    table { width: 100%; border-collapse: collapse; background: var(--bg2); }
+    thead tr { background: linear-gradient(90deg, var(--primary), var(--accent)); color: #fff; }
+    thead th {
+      padding: 14px 16px; text-align: left; font-size: 0.78rem;
+      font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      white-space: nowrap; cursor: pointer; user-select: none;
+      transition: background var(--transition);
+    }
+    thead th:hover { background: rgba(255,255,255,0.15); }
+    thead th .sort-icon { margin-left: 4px; opacity: 0.6; font-size: 0.7rem; }
+    tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition); }
+    tbody tr:nth-child(even) { background: var(--bg3); }
+    tbody tr:hover { background: rgba(21,101,192,0.07); }
+    tbody td { padding: 11px 16px; font-size: 0.84rem; }
+    .td-muni { font-weight: 600; }
+    .td-region {
+      font-size: 0.74rem; padding: 3px 10px; border-radius: 99px;
+      font-weight: 600; white-space: nowrap;
+    }
+    .reg-metro { background: rgba(21,101,192,0.12); color: #1565c0; }
+    .reg-cn { background: rgba(0,172,193,0.12); color: #00838f; }
+    .reg-sul { background: rgba(46,125,50,0.12); color: #2e7d32; }
+    [data-theme="dark"] .reg-metro { color: #64b5f6; }
+    [data-theme="dark"] .reg-cn { color: #4dd0e1; }
+    [data-theme="dark"] .reg-sul { color: #81c784; }
+    .pct-cell { font-family: 'IBM Plex Mono', monospace; font-size: 0.82rem; }
+    .pct-ok { color: var(--success); font-weight: 700; }
+    .pct-mid { color: var(--warning); }
+    .pct-low { color: var(--danger); font-weight: 700; }
+    .mini-bar {
+      display: inline-block; height: 6px; border-radius: 3px;
+      background: var(--border); width: 60px; vertical-align: middle;
+      margin-left: 6px; position: relative; overflow: hidden;
+    }
+    .mini-bar-fill {
+      position: absolute; top: 0; left: 0; bottom: 0;
+      border-radius: 3px;
+      background: linear-gradient(90deg, #1565c0, #00acc1);
+    }
+    .table-pagination {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 14px 20px; background: var(--bg2); border-top: 1px solid var(--border);
+      border-radius: 0 0 var(--radius) var(--radius); flex-wrap: wrap; gap: 10px;
+    }
+    .page-info { font-size: 0.8rem; color: var(--text3); }
+    .page-btns { display: flex; gap: 6px; }
+    .page-btn {
+      width: 32px; height: 32px; border-radius: 6px;
+      border: 1px solid var(--border); background: var(--bg2);
+      color: var(--text2); cursor: pointer; font-size: 0.8rem;
+      display: flex; align-items: center; justify-content: center;
+      transition: background var(--transition), color var(--transition);
+    }
+    .page-btn:hover, .page-btn.active { background: var(--primary); color: #fff; border-color: var(--primary); }
+
+    /* ===== CRITICAL MUNICIPALITIES ===== */
+    .critical-grid {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 16px;
+    }
+    .crit-card {
+      background: var(--bg2); border: 1px solid rgba(198,40,40,0.2);
+      border-left: 4px solid var(--danger);
+      border-radius: var(--radius-sm); padding: 20px;
+      box-shadow: var(--shadow);
+      transition: transform var(--transition);
+    }
+    .crit-card:hover { transform: translateY(-2px); }
+    .crit-rank {
+      font-family: 'IBM Plex Mono', monospace; font-size: 0.7rem;
+      color: var(--danger); font-weight: 700; margin-bottom: 8px;
+      text-transform: uppercase; letter-spacing: 0.08em;
+    }
+    .crit-name { font-weight: 800; font-size: 0.95rem; margin-bottom: 4px; }
+    .crit-region { font-size: 0.75rem; color: var(--text3); margin-bottom: 14px; }
+    .crit-pct {
+      font-family: 'IBM Plex Mono', monospace; font-size: 1.6rem;
+      font-weight: 700; color: var(--danger); margin-bottom: 4px;
+    }
+    .crit-lbl { font-size: 0.7rem; color: var(--text3); text-transform: uppercase; }
+    .crit-bar { margin-top: 12px; }
+    .crit-bar-bg { height: 6px; background: var(--bg3); border-radius: 3px; }
+    .crit-bar-fill { height: 6px; background: var(--danger); border-radius: 3px; transition: width 1.2s ease; }
+
+    /* ===== CHARTS ===== */
+    .chart-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(320px, 1fr)); gap: 24px; }
+    .chart-box {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow);
+    }
+    section:nth-child(even) .chart-box { background: var(--bg3); }
+    .chart-box h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 6px; }
+    .chart-box p { font-size: 0.8rem; color: var(--text3); margin-bottom: 20px; }
+    .chart-box canvas { max-height: 280px; }
+
+    /* ===== REGION COMPARISON ===== */
+    .region-grid { display: grid; grid-template-columns: repeat(auto-fit, minmax(280px, 1fr)); gap: 20px; }
+    .region-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 28px; box-shadow: var(--shadow);
+    }
+    section:nth-child(even) .region-card { background: var(--bg3); }
+    .region-name { font-weight: 800; font-size: 1rem; margin-bottom: 4px; }
+    .region-sub { font-size: 0.78rem; color: var(--text3); margin-bottom: 20px; }
+    .region-metric { margin-bottom: 14px; }
+    .region-metric-row { display: flex; justify-content: space-between; margin-bottom: 6px; }
+    .region-metric-label { font-size: 0.78rem; color: var(--text2); }
+    .region-metric-val { font-size: 0.78rem; font-family: 'IBM Plex Mono', monospace; font-weight: 600; }
+    .region-bar-bg { height: 8px; background: var(--bg3); border-radius: 4px; overflow: hidden; }
+    .region-bar-fill { height: 8px; border-radius: 4px; transition: width 1.4s ease; }
+
+    /* ===== TRATAMENTO ===== */
+    .treat-list { display: flex; flex-direction: column; gap: 16px; }
+    .treat-item {
+      display: flex; gap: 16px; align-items: flex-start;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm); padding: 20px;
+      box-shadow: var(--shadow);
+    }
+    section:nth-child(even) .treat-item { background: var(--bg3); }
+    .treat-icon {
+      width: 40px; height: 40px; border-radius: 10px; flex-shrink: 0;
+      display: flex; align-items: center; justify-content: center; font-size: 1rem;
+    }
+    .treat-icon.blue { background: rgba(21,101,192,0.12); color: var(--primary); }
+    .treat-icon.orange { background: rgba(230,81,0,0.12); color: var(--warning); }
+    .treat-icon.teal { background: rgba(0,172,193,0.12); color: var(--accent); }
+    .treat-icon.red { background: rgba(198,40,40,0.12); color: var(--danger); }
+    .treat-text h4 { font-size: 0.9rem; font-weight: 700; margin-bottom: 6px; }
+    .treat-text p { font-size: 0.84rem; color: var(--text2); line-height: 1.65; }
+
+    /* ===== CONCLUSION ===== */
+    .conclusion-box {
+      background: linear-gradient(135deg, var(--primary), var(--accent));
+      border-radius: var(--radius); padding: 40px; color: #fff;
+      margin-bottom: 32px;
+    }
+    .conclusion-box h3 { font-size: 1.3rem; font-weight: 800; margin-bottom: 12px; }
+    .conclusion-box p { opacity: 0.9; line-height: 1.7; }
+
+    /* ===== COUNTER ANIMATION ===== */
+    .counter { font-family: 'IBM Plex Mono', monospace; }
+
+    /* ===== FOOTER ===== */
+    footer {
+      background: var(--bg2); border-top: 1px solid var(--border);
+      padding: 40px 24px; text-align: center;
+    }
+    .footer-inner { max-width: 900px; margin: 0 auto; }
+    .footer-title { font-weight: 800; font-size: 1rem; margin-bottom: 8px; color: var(--primary); }
+    .footer-team { font-size: 0.84rem; color: var(--text2); margin-bottom: 20px; }
+    .footer-source {
+      font-size: 0.78rem; color: var(--text3);
+      background: var(--bg3); display: inline-block; padding: 6px 14px; border-radius: 6px;
+    }
+
+    /* ===== SCROLL ANIMATIONS ===== */
+    .fade-in {
+      opacity: 0; transform: translateY(28px);
+      transition: opacity 0.6s ease, transform 0.6s ease;
+    }
+    .fade-in.visible { opacity: 1; transform: none; }
+    .fade-in:nth-child(2) { transition-delay: 0.1s; }
+    .fade-in:nth-child(3) { transition-delay: 0.2s; }
+    .fade-in:nth-child(4) { transition-delay: 0.3s; }
+    .fade-in:nth-child(5) { transition-delay: 0.4s; }
+
+    /* ===== LEITOS SECTION STYLES ===== */
+
+    /* KPI Strip */
+    .kpi-strip {
+      display: grid; grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+      gap: 20px; margin-bottom: 40px;
+    }
+    .kpi-card {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px 20px;
+      box-shadow: var(--shadow); position: relative; overflow: hidden;
+      transition: transform var(--transition), box-shadow var(--transition);
+    }
+    .kpi-card:hover { transform: translateY(-3px); box-shadow: var(--shadow-lg); }
+    .kpi-card::before {
+      content: ''; position: absolute; top: 0; left: 0; right: 0; height: 3px;
+    }
+    .kpi-card.kpi-blue::before { background: linear-gradient(90deg, #1565c0, #1e88e5); }
+    .kpi-card.kpi-green::before { background: linear-gradient(90deg, #2e7d32, #43a047); }
+    .kpi-card.kpi-teal::before { background: linear-gradient(90deg, #00838f, #26c6da); }
+    .kpi-card.kpi-orange::before { background: linear-gradient(90deg, #e65100, #ff9800); }
+    .kpi-card.kpi-red::before { background: linear-gradient(90deg, #c62828, #ef5350); }
+    .kpi-label { font-size: 0.72rem; font-weight: 700; letter-spacing: 0.08em; text-transform: uppercase; color: var(--text3); margin-bottom: 8px; }
+    .kpi-value { font-family: 'IBM Plex Mono', monospace; font-size: 2rem; font-weight: 800; color: var(--text); margin-bottom: 4px; }
+    .kpi-sub { font-size: 0.78rem; color: var(--text3); }
+    .kpi-icon { position: absolute; right: 16px; top: 20px; font-size: 1.4rem; opacity: 0.12; }
+
+    /* Beds Table */
+    .leitos-table-wrap { overflow-x: auto; border-radius: var(--radius); box-shadow: var(--shadow); }
+    .leitos-table { width: 100%; border-collapse: collapse; background: var(--bg2); }
+    .leitos-table thead tr { background: linear-gradient(90deg, #004d40, #0277bd); color: #fff; }
+    .leitos-table thead th {
+      padding: 14px 16px; text-align: left; font-size: 0.76rem;
+      font-weight: 700; letter-spacing: 0.05em; text-transform: uppercase;
+      white-space: nowrap; cursor: pointer; user-select: none;
+    }
+    .leitos-table thead th:hover { background: rgba(255,255,255,0.12); }
+    .leitos-table tbody tr { border-bottom: 1px solid var(--border); transition: background var(--transition); }
+    .leitos-table tbody tr:nth-child(even) { background: var(--bg3); }
+    .leitos-table tbody tr:hover { background: rgba(0,77,64,0.06); cursor: pointer; }
+    .leitos-table tbody td { padding: 11px 16px; font-size: 0.84rem; }
+    .leitos-table .td-cidade { font-weight: 700; }
+
+    /* Occupancy badges */
+    .occ-badge {
+      display: inline-flex; align-items: center; gap: 5px;
+      padding: 4px 10px; border-radius: 99px; font-size: 0.75rem; font-weight: 700;
+    }
+    .occ-critico { background: rgba(198,40,40,0.13); color: #c62828; border: 1px solid rgba(198,40,40,0.2); }
+    .occ-alto { background: rgba(230,81,0,0.13); color: var(--warning); border: 1px solid rgba(230,81,0,0.2); }
+    .occ-medio { background: rgba(255,179,0,0.13); color: #f9a825; border: 1px solid rgba(255,179,0,0.2); }
+    .occ-normal { background: rgba(46,125,50,0.12); color: var(--success); border: 1px solid rgba(46,125,50,0.2); }
+    [data-theme="dark"] .occ-critico { color: #ef5350; }
+    [data-theme="dark"] .occ-alto { color: #ff9800; }
+    [data-theme="dark"] .occ-medio { color: #ffca28; }
+    [data-theme="dark"] .occ-normal { color: #4caf50; }
+
+    /* OMS indicator */
+    .oms-indicator {
+      display: inline-flex; align-items: center; gap: 4px;
+      font-size: 0.74rem; font-family: 'IBM Plex Mono', monospace;
+    }
+    .oms-ok { color: var(--success); }
+    .oms-low { color: var(--danger); }
+    .oms-dot { width: 7px; height: 7px; border-radius: 50%; display: inline-block; }
+    .oms-dot-ok { background: var(--success); }
+    .oms-dot-low { background: var(--danger); }
+
+    /* Map Container */
+    .map-section-grid {
+      display: grid; grid-template-columns: 1fr 360px; gap: 24px; align-items: start;
+    }
+    @media (max-width: 900px) {
+      .map-section-grid { grid-template-columns: 1fr; }
+    }
+    #bedsMap {
+      height: 500px; border-radius: var(--radius);
+      box-shadow: var(--shadow); overflow: hidden;
+      border: 1px solid var(--border);
+    }
+    .map-panel {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 0; box-shadow: var(--shadow);
+      overflow: hidden;
+    }
+    .map-panel-header {
+      background: linear-gradient(90deg, #004d40, #0277bd);
+      color: #fff; padding: 18px 20px;
+    }
+    .map-panel-header h3 { font-size: 0.92rem; font-weight: 700; margin-bottom: 2px; }
+    .map-panel-header p { font-size: 0.76rem; opacity: 0.8; }
+    .map-panel-body { padding: 16px; }
+    .map-city-item {
+      display: flex; align-items: center; justify-content: space-between;
+      padding: 10px 12px; border-radius: 8px; cursor: pointer;
+      transition: background var(--transition); gap: 10px;
+    }
+    .map-city-item:hover { background: var(--bg3); }
+    .map-city-item.selected { background: rgba(21,101,192,0.1); }
+    .map-city-name { font-weight: 600; font-size: 0.84rem; flex: 1; }
+    .map-city-leitos { font-family: 'IBM Plex Mono', monospace; font-size: 0.8rem; color: var(--text3); }
+    .map-city-dot {
+      width: 10px; height: 10px; border-radius: 50%; flex-shrink: 0;
+    }
+
+    /* Detail Panel */
+    .detail-panel {
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius); padding: 24px; box-shadow: var(--shadow-lg);
+      margin-top: 20px;
+    }
+    .detail-panel h3 { font-size: 1.1rem; font-weight: 800; margin-bottom: 16px; }
+    .detail-grid { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+    .detail-stat {
+      background: var(--bg3); border-radius: 10px; padding: 14px;
+      text-align: center;
+    }
+    .detail-stat .ds-val { font-family: 'IBM Plex Mono', monospace; font-size: 1.4rem; font-weight: 800; }
+    .detail-stat .ds-lbl { font-size: 0.7rem; color: var(--text3); text-transform: uppercase; letter-spacing: 0.06em; margin-top: 4px; }
+    .detail-stat.ds-total .ds-val { color: var(--primary); }
+    .detail-stat.ds-ocupado .ds-val { color: var(--danger); }
+    .detail-stat.ds-disponivel .ds-val { color: var(--success); }
+
+    /* Occupancy chart bar */
+    .occ-bar-wrap { margin-top: 16px; }
+    .occ-bar-label { display: flex; justify-content: space-between; font-size: 0.78rem; color: var(--text3); margin-bottom: 6px; }
+    .occ-bar-bg { height: 18px; background: var(--bg3); border-radius: 9px; overflow: hidden; }
+    .occ-bar-fill {
+      height: 100%; border-radius: 9px;
+      transition: width 1s ease; width: 0;
+      background: linear-gradient(90deg, #2e7d32, #43a047);
+    }
+    .occ-bar-fill.occ-bar-high { background: linear-gradient(90deg, #c62828, #ef5350); }
+    .occ-bar-fill.occ-bar-med { background: linear-gradient(90deg, #e65100, #ff9800); }
+
+    /* Legend */
+    .map-legend {
+      display: flex; flex-wrap: wrap; gap: 12px;
+      margin-top: 16px; padding: 16px;
+      background: var(--bg2); border: 1px solid var(--border);
+      border-radius: var(--radius-sm);
+    }
+    .legend-item { display: flex; align-items: center; gap: 6px; font-size: 0.78rem; color: var(--text2); }
+    .legend-dot { width: 12px; height: 12px; border-radius: 50%; }
+    .legend-verde { background: #2e7d32; }
+    .legend-amarelo { background: #f9a825; }
+    .legend-laranja { background: #e65100; }
+    .legend-vermelho { background: #c62828; }
+
+    /* OMS Ref box */
+    .oms-ref-box {
+      background: linear-gradient(135deg, #004d40, #0097a7);
+      border-radius: var(--radius); padding: 24px 28px; color: #fff;
+      display: flex; align-items: center; gap: 20px; flex-wrap: wrap;
+      margin-bottom: 32px;
+    }
+    .oms-ref-icon { font-size: 2rem; opacity: 0.8; }
+    .oms-ref-text h3 { font-size: 1rem; font-weight: 800; margin-bottom: 4px; }
+    .oms-ref-text p { font-size: 0.87rem; opacity: 0.9; max-width: 700px; }
+
+    /* Skeleton loader */
+    .skeleton {
+      background: linear-gradient(90deg, var(--bg3) 25%, var(--bg2) 50%, var(--bg3) 75%);
+      background-size: 200% 100%; animation: shimmer 1.5s infinite;
+      border-radius: 8px; height: 20px;
+    }
+    @keyframes shimmer { 0% { background-position: 200% 0; } 100% { background-position: -200% 0; } }
+
+    /* ===== RESPONSIVE ===== */
+    @media (max-width: 768px) {
+      .tab-nav { display: none; }
+      .nav-links-small { display: none; }
+      section { padding: 52px 16px; }
+      .hero, .hero-leitos { padding: 56px 16px 48px; }
+      .meta-box { padding: 20px; }
+      .detail-grid { grid-template-columns: repeat(2, 1fr); }
+    }
+    @media (max-width: 480px) {
+      .kpi-strip { grid-template-columns: 1fr 1fr; }
+    }
+
+    /* Mobile tab toggle */
+    .mobile-tab-bar {
+      display: none;
+      position: fixed; bottom: 0; left: 0; right: 0; z-index: 200;
+      background: var(--bg2); border-top: 1px solid var(--border);
+      box-shadow: 0 -4px 20px rgba(0,0,0,0.1);
+      padding: 8px 16px 12px;
+      gap: 8px;
+    }
+    .mobile-tab-bar .tab-btn { flex: 1; justify-content: center; flex-direction: column; gap: 4px; padding: 8px 4px; font-size: 0.7rem; }
+    .mobile-tab-bar .tab-btn i { font-size: 1.1rem; }
+    @media (max-width: 768px) {
+      .mobile-tab-bar { display: flex; }
+      main { padding-bottom: 80px; }
+    }
+
+    /* Leaflet popup customization */
+    .leaflet-popup-content-wrapper {
+      border-radius: 12px !important;
+      box-shadow: 0 8px 32px rgba(0,0,0,0.18) !important;
+      font-family: 'Sora', sans-serif !important;
+    }
+    .leaflet-popup-content { margin: 0 !important; }
+    .map-popup { padding: 14px 16px; min-width: 200px; }
+    .map-popup h4 { font-size: 0.95rem; font-weight: 800; margin-bottom: 10px; color: #0d1b2a; }
+    .map-popup-row { display: flex; justify-content: space-between; font-size: 0.82rem; padding: 3px 0; border-bottom: 1px solid #eee; }
+    .map-popup-row:last-child { border-bottom: none; }
+    .map-popup-label { color: #647d96; }
+    .map-popup-val { font-weight: 700; font-family: 'IBM Plex Mono', monospace; }
+
+    /* Search highlight */
+    mark { background: rgba(255,213,0,0.4); border-radius: 2px; padding: 0 1px; }
+  </style>
+</head>
+<body>
+
+<!-- NAVBAR -->
+<nav>
+  <div class="nav-logo">
+    <div class="nav-logo-icon"><i class="fa-solid fa-heart-pulse"></i></div>
+    <span>SaúdeES</span>
+  </div>
+  <div class="tab-nav">
+    <button class="tab-btn active" onclick="showPage('vacina')" id="tabVacina">
+      <i class="fa-solid fa-syringe"></i> Vacinação Infantil
+    </button>
+    <button class="tab-btn" onclick="showPage('leitos')" id="tabLeitos">
+      <i class="fa-solid fa-bed-pulse"></i> Leitos Hospitalares
+    </button>
+  </div>
+  <div class="nav-actions">
+    <div class="nav-links-small" id="navLinksVacina">
+      <a href="#intro">Intro</a>
+      <a href="#visao">Visão</a>
+      <a href="#tabela">Dados</a>
+      <a href="#criticos">Críticos</a>
+      <a href="#evolucao">Evolução</a>
+      <a href="#conclusao">Conclusão</a>
+    </div>
+    <div class="nav-links-small" id="navLinksLeitos" style="display:none">
+      <a href="#leitos-visao">Visão</a>
+      <a href="#leitos-mapa">Mapa</a>
+      <a href="#leitos-tabela">Tabela</a>
+      <a href="#leitos-graficos">Gráficos</a>
+    </div>
+    <button class="theme-btn" id="themeBtn" aria-label="Alternar tema">
+      <i class="fa-solid fa-moon" id="themeIcon"></i>
+    </button>
+  </div>
+</nav>
+
+<!-- Mobile Tab Bar -->
+<div class="mobile-tab-bar">
+  <button class="tab-btn active" onclick="showPage('vacina')" id="mTabVacina">
+    <i class="fa-solid fa-syringe"></i> Vacinação
+  </button>
+  <button class="tab-btn" onclick="showPage('leitos')" id="mTabLeitos">
+    <i class="fa-solid fa-bed-pulse"></i> Leitos
+  </button>
+</div>
+
+<main>
+
+<!-- ============================================================ -->
+<!-- PAGE: VACINAÇÃO -->
+<!-- ============================================================ -->
+<div class="page active" id="pageVacina">
+
+<!-- HERO -->
+<div class="hero" id="intro">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      Alerta de Saúde Pública
+    </div>
+    <h1>Cobertura Vacinal Infantil<br>no <span>Espírito Santo</span></h1>
+    <p>Análise dos dados de vacinação infantil nos 78 municípios capixabas (2019–2022). O Espírito Santo enfrenta queda preocupante nos índices de vacinação, colocando crianças em risco de doenças evitáveis.</p>
+    <div class="hero-stats">
+      <div class="hero-stat danger">
+        <div class="val counter" data-target="81.9" data-suffix="%">0%</div>
+        <div class="lbl">Cobertura média BCG 2022</div>
+      </div>
+      <div class="hero-stat warn">
+        <div class="val counter" data-target="70.0" data-suffix="%">0%</div>
+        <div class="lbl">Cobertura média Polio 2022</div>
+      </div>
+      <div class="hero-stat">
+        <div class="val">95%</div>
+        <div class="lbl">Meta OMS / MS</div>
+      </div>
+      <div class="hero-stat danger">
+        <div class="val counter" data-target="72" data-suffix="/78">0</div>
+        <div class="lbl">Municípios abaixo da meta (BCG)</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- SEÇÃO 1: INTRODUÇÃO -->
+<section>
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-book-open"></i> Contexto</div>
+    <h2>O Problema da Queda Vacinal</h2>
+    <p class="section-desc">O Brasil e o Espírito Santo enfrentam uma crise silenciosa: a redução nas taxas de vacinação infantil, colocando em risco décadas de conquistas em saúde pública.</p>
+    <div class="cards-grid">
+      <div class="card fade-in">
+        <div class="card-icon"><i class="fa-solid fa-chart-line"></i></div>
+        <h3>Queda Histórica</h3>
+        <p>Desde 2016, o Brasil registra queda contínua na cobertura vacinal. No ES, indicadores como BCG e Poliomielite estão bem abaixo da meta de 95% estabelecida pelo Ministério da Saúde.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-icon"><i class="fa-solid fa-shield-virus"></i></div>
+        <h3>Por que 95%?</h3>
+        <p>A meta de 95% de cobertura vacinal garante a imunidade de rebanho — protegendo até quem não pode se vacinar. Abaixo desse limiar, doenças erradicadas como sarampo e pólio podem ressurgir.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-icon"><i class="fa-solid fa-virus-covid"></i></div>
+        <h3>Impacto da Pandemia</h3>
+        <p>A pandemia de COVID-19 (2020–2021) agravou o cenário, com interrupção de serviços de saúde, hesitância vacinal e sobrecarga dos sistemas. Os dados de 2022 revelam que a recuperação foi incompleta.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-icon"><i class="fa-solid fa-map-location-dot"></i></div>
+        <h3>Desigualdade Regional</h3>
+        <p>A análise dos 78 municípios capixabas mostra diferenças marcantes entre regiões. A Região Central Norte apresenta as menores coberturas, com municípios próximos de 0% em BCG.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEÇÃO 2: VISÃO GERAL -->
+<section id="visao">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-gauge"></i> Estado Atual</div>
+    <h2>Visão Geral — Espírito Santo</h2>
+    <p class="section-desc">Situação consolidada da cobertura vacinal no estado em 2022, comparada à meta nacional de 95%.</p>
+
+    <div class="meta-box fade-in">
+      <div class="meta-header">
+        <h3><i class="fa-solid fa-syringe" style="color:var(--primary);margin-right:8px"></i>BCG (Cobertura média) — 2022</h3>
+        <span class="meta-badge badge-danger"><i class="fa-solid fa-circle-xmark"></i> &nbsp;Abaixo da Meta</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="bcgBar" style="width:0%"></div>
+        </div>
+        <div class="progress-meta">
+          <span>0%</span><span>Meta: 95%</span><span>100%</span>
+        </div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item"><div class="mi-val">81,9%</div><div class="mi-lbl">Cobertura média BCG</div></div>
+        <div class="meta-item"><div class="mi-val" style="color:var(--danger)">−13,1 pp</div><div class="mi-lbl">Diferença para a meta</div></div>
+        <div class="meta-item"><div class="mi-val">72</div><div class="mi-lbl">Municípios abaixo da meta</div></div>
+        <div class="meta-item"><div class="mi-val">95%</div><div class="mi-lbl">Meta nacional</div></div>
+      </div>
+    </div>
+
+    <div class="meta-box fade-in">
+      <div class="meta-header">
+        <h3><i class="fa-solid fa-shield-virus" style="color:var(--primary);margin-right:8px"></i>Poliomielite (Cobertura média) — 2022</h3>
+        <span class="meta-badge badge-danger"><i class="fa-solid fa-circle-xmark"></i> &nbsp;Abaixo da Meta</span>
+      </div>
+      <div class="progress-wrap">
+        <div class="progress-bar-bg">
+          <div class="progress-bar-fill" id="polioBar" style="width:0%"></div>
+        </div>
+        <div class="progress-meta">
+          <span>0%</span><span>Meta: 95%</span><span>100%</span>
+        </div>
+      </div>
+      <div class="meta-row">
+        <div class="meta-item"><div class="mi-val">70,0%</div><div class="mi-lbl">Cobertura média Polio 2022</div></div>
+        <div class="meta-item"><div class="mi-val" style="color:var(--warning)">−25,0 pp</div><div class="mi-lbl">Diferença para a meta</div></div>
+        <div class="meta-item"><div class="mi-val">73</div><div class="mi-lbl">Municípios analisados</div></div>
+        <div class="meta-item"><div class="mi-val" style="color:var(--danger)">77</div><div class="mi-lbl">Municípios abaixo da meta</div></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEÇÃO 3: TABELA -->
+<section id="tabela">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-table"></i> Dados da Planilha</div>
+    <h2>Tabela de Municípios</h2>
+    <p class="section-desc">Todos os 78 municípios do Espírito Santo com os percentuais enviados na planilha. Clique nos cabeçalhos para ordenar. Filtre por município ou região de saúde.</p>
+    <div class="table-controls">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="searchInput" placeholder="Buscar município..." />
+      </div>
+      <select class="filter-select" id="regionFilter">
+        <option value="">Todas as Regiões</option>
+        <option value="Metropolitana">Metropolitana</option>
+        <option value="Central Norte">Central Norte</option>
+        <option value="Sul">Sul</option>
+      </select>
+      <select class="filter-select" id="coverageFilter">
+        <option value="">Todos</option>
+        <option value="critico">Crítico (&lt;40%)</option>
+        <option value="baixo">Baixo (40–70%)</option>
+        <option value="medio">Médio (70–95%)</option>
+        <option value="meta">Na Meta (≥95%)</option>
+      </select>
+    </div>
+    <div class="table-wrap">
+      <table id="dataTable">
+        <thead>
+          <tr>
+            <th onclick="sortTable(0)">Município <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(1)">Região <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(2)">Pop. Total <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(3)">BCG 2022 (%) <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(4)">Polio 2019 (%) <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(5)">Polio 2020 (%) <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(6)">Polio 2021 (%) <span class="sort-icon">⇅</span></th>
+            <th onclick="sortTable(7)">Polio 2022 (%) <span class="sort-icon">⇅</span></th>
+          </tr>
+        </thead>
+        <tbody id="tableBody"></tbody>
+      </table>
+      <div class="table-pagination">
+        <div class="page-info" id="pageInfo">Mostrando 1–15 de 73</div>
+        <div class="page-btns" id="pageBtns"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEÇÃO 4: CRÍTICOS -->
+<section id="criticos">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-triangle-exclamation"></i> Alerta</div>
+    <h2>Municípios Mais Críticos</h2>
+    <p class="section-desc">Os 5 municípios com menor cobertura de BCG em 2022, indicando risco elevado para recém-nascidos.</p>
+    <div class="critical-grid" id="criticalGrid"></div>
+  </div>
+</section>
+
+<!-- SEÇÃO 5: EVOLUÇÃO -->
+<section id="evolucao">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-chart-line"></i> Tendências</div>
+    <h2>Evolução 2019–2022</h2>
+    <p class="section-desc">Acompanhe a tendência de cobertura vacinal por Poliomielite no Espírito Santo ao longo dos anos disponíveis.</p>
+    <div class="chart-grid">
+      <div class="chart-box fade-in">
+        <h3>Poliomielite — Cobertura Média (%)</h3>
+        <p>Evolução da cobertura média de Poliomielite no estado</p>
+        <canvas id="evolucaoChart"></canvas>
+      </div>
+      <div class="chart-box fade-in">
+        <h3>Distribuição de Municípios por Faixa de Cobertura BCG 2022</h3>
+        <p>Quantos municípios estão em cada faixa de cobertura</p>
+        <canvas id="distribuicaoChart"></canvas>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEÇÃO 6: REGIÕES -->
+<section id="regioes">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-map"></i> Comparativo</div>
+    <h2>Diferença por Regiões de Saúde</h2>
+    <p class="section-desc">O ES está dividido em 3 regiões de saúde. A comparação revela desigualdades importantes na cobertura vacinal.</p>
+    <div class="region-grid" id="regionGrid"></div>
+    <div style="margin-top:28px" class="chart-box fade-in">
+      <h3>Comparativo Regional — BCG e Polio 2022 (%)</h3>
+      <p>Média de cobertura por região de saúde</p>
+      <canvas id="regiaoChart"></canvas>
+    </div>
+  </div>
+</section>
+
+<!-- SEÇÃO 7: TRATAMENTO -->
+<section id="tratamento">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-flask"></i> Metodologia</div>
+    <h2>Tratamento dos Dados</h2>
+    <p class="section-desc">Decisões metodológicas adotadas na análise e limpeza dos dados provenientes do DATASUS.</p>
+    <div class="treat-list">
+      <div class="treat-item fade-in">
+        <div class="treat-icon blue"><i class="fa-solid fa-copy"></i></div>
+        <div class="treat-text">
+          <h4>Dados da Série (2019–2022)</h4>
+          <p>A planilha já traz os percentuais por município e ano. A visualização usa esses valores diretamente e mantém 2019, 2020, 2021 e 2022 para comparar a evolução da cobertura.</p>
+        </div>
+      </div>
+      <div class="treat-item fade-in">
+        <div class="treat-icon orange"><i class="fa-solid fa-calculator"></i></div>
+        <div class="treat-text">
+          <h4>Uso dos Percentuais</h4>
+          <p>Os percentuais já vêm calculados na própria planilha. Mantivemos a escala de 95% como referência nacional e preservamos também os resultados acima de 100%, que podem ocorrer em campanhas intensas ou registros acima da estimativa.</p>
+        </div>
+      </div>
+      <div class="treat-item fade-in">
+        <div class="treat-icon teal"><i class="fa-solid fa-circle-question"></i></div>
+        <div class="treat-text">
+          <h4>Municípios com Cobertura Muito Baixa</h4>
+          <p>Alguns municípios ficam muito abaixo da meta em BCG, como Linhares, Mantenópolis e João Neiva. Esses valores foram mantidos como aparecem na planilha para preservar a leitura original dos dados.</p>
+        </div>
+      </div>
+      <div class="treat-item fade-in">
+        <div class="treat-icon red"><i class="fa-solid fa-arrow-trend-down"></i></div>
+        <div class="treat-text">
+          <h4>Variações Entre Anos</h4>
+          <p>Os anos de 2019 a 2022 foram mantidos para mostrar a evolução da vacinação ao longo do período analisado. A comparação ajuda a identificar queda, recuperação parcial e diferenças entre municípios e regiões.</p>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- SEÇÃO 8: CONCLUSÃO -->
+<section id="conclusao">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-flag-checkered"></i> Conclusão</div>
+    <h2>Resumo e Recomendações</h2>
+    <p class="section-desc">O que os dados revelam e por que agir agora.</p>
+    <div class="conclusion-box fade-in">
+      <h3><i class="fa-solid fa-exclamation-circle"></i> &nbsp;Situação Crítica</h3>
+      <p>O Espírito Santo ainda está abaixo da meta de 95% em BCG e Poliomielite. Na planilha enviada, a média ficou em 81,9% para BCG e 70,0% para Polio 2022. Os municípios mais críticos em BCG são Linhares (18,4%), Mantenópolis (28,7%), João Neiva (50,0%), Vitória (55,1%) e Fundão (55,9%).</p>
+    </div>
+    <div class="cards-grid">
+      <div class="card fade-in">
+        <div class="card-icon" style="background:rgba(46,125,50,0.12);color:var(--success)"><i class="fa-solid fa-bullhorn"></i></div>
+        <h3>Educação e Comunicação</h3>
+        <p>Campanhas de combate à hesitância vacinal e desinformação, com foco nas regiões Central Norte e municípios mais vulneráveis.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-icon" style="background:rgba(0,172,193,0.12);color:var(--accent)"><i class="fa-solid fa-location-crosshairs"></i></div>
+        <h3>Estratégias Focalizadas</h3>
+        <p>Mutirões de vacinação nos municípios com menor cobertura, com horários estendidos e busca ativa de crianças não vacinadas.</p>
+      </div>
+      <div class="card fade-in">
+        <div class="card-icon" style="background:rgba(21,101,192,0.12);color:var(--primary)"><i class="fa-solid fa-database"></i></div>
+        <h3>Melhoria dos Registros</h3>
+        <p>Corrigir inconsistências no SI-PNI/DATASUS, como os dados duplicados de 2021, para permitir monitoramento mais preciso e eficaz.</p>
+      </div>
+    </div>
+  </div>
+</section>
+
+</div><!-- end pageVacina -->
+
+
+<!-- ============================================================ -->
+<!-- PAGE: LEITOS HOSPITALARES -->
+<!-- ============================================================ -->
+<div class="page" id="pageLeitos">
+
+<!-- HERO LEITOS -->
+<div class="hero-leitos" id="leitos-intro">
+  <div class="hero-inner">
+    <div class="hero-badge">
+      <i class="fa-solid fa-hospital"></i>
+      Infraestrutura Hospitalar
+    </div>
+    <h1>Leitos Hospitalares<br>no <span>Espírito Santo</span></h1>
+    <p>Panorama dos leitos SUS e não-SUS nos 78 municípios capixabas em 2023. Comparativo com a referência da OMS de 3 leitos por mil habitantes.</p>
+    <div class="hero-stats">
+      <div class="hero-stat">
+        <div class="val" id="heroTotalLeitos">—</div>
+        <div class="lbl">Total de leitos (ES)</div>
+      </div>
+      <div class="hero-stat warn">
+        <div class="val" id="heroLeitosMil">—</div>
+        <div class="lbl">Leitos / mil hab. (média)</div>
+      </div>
+      <div class="hero-stat">
+        <div class="val">3,0</div>
+        <div class="lbl">Referência OMS</div>
+      </div>
+      <div class="hero-stat danger">
+        <div class="val" id="heroAbaixoOMS">—</div>
+        <div class="lbl">Municípios abaixo da OMS</div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- VISÃO GERAL LEITOS -->
+<section id="leitos-visao">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-gauge-high"></i> Painel Geral</div>
+    <h2>Situação dos Leitos — 2023</h2>
+    <p class="section-desc">Indicadores consolidados sobre a oferta hospitalar nos municípios do Espírito Santo, com comparativo entre leitos SUS e não-SUS.</p>
+
+    <div class="oms-ref-box">
+      <div class="oms-ref-icon"><i class="fa-solid fa-earth-americas"></i></div>
+      <div class="oms-ref-text">
+        <h3>Referência OMS: 3 leitos por mil habitantes</h3>
+        <p>A Organização Mundial da Saúde recomenda ao menos 3 leitos hospitalares por mil habitantes para garantir atendimento adequado à população. A maioria dos municípios capixabas está abaixo desse patamar.</p>
+      </div>
+    </div>
+
+    <div class="kpi-strip" id="kpiStrip">
+      <div class="kpi-card kpi-blue fade-in">
+        <div class="kpi-label">Total de Leitos</div>
+        <div class="kpi-value" id="kpiTotal">—</div>
+        <div class="kpi-sub">SUS + Não-SUS (2023)</div>
+        <div class="kpi-icon"><i class="fa-solid fa-bed-pulse"></i></div>
+      </div>
+      <div class="kpi-card kpi-teal fade-in">
+        <div class="kpi-label">Leitos SUS</div>
+        <div class="kpi-value" id="kpiSUS">—</div>
+        <div class="kpi-sub">Rede pública (2023)</div>
+        <div class="kpi-icon"><i class="fa-solid fa-hospital"></i></div>
+      </div>
+      <div class="kpi-card kpi-green fade-in">
+        <div class="kpi-label">Leitos Não-SUS</div>
+        <div class="kpi-value" id="kpiNaoSUS">—</div>
+        <div class="kpi-sub">Rede privada/conv. (2023)</div>
+        <div class="kpi-icon"><i class="fa-solid fa-clinic-medical"></i></div>
+      </div>
+      <div class="kpi-card kpi-orange fade-in">
+        <div class="kpi-label">Média Leitos/Mil Hab.</div>
+        <div class="kpi-value" id="kpiMedia">—</div>
+        <div class="kpi-sub">Média estadual</div>
+        <div class="kpi-icon"><i class="fa-solid fa-chart-bar"></i></div>
+      </div>
+      <div class="kpi-card kpi-red fade-in">
+        <div class="kpi-label">Abaixo OMS (3/mil)</div>
+        <div class="kpi-value" id="kpiAbaixo">—</div>
+        <div class="kpi-sub">Municípios críticos</div>
+        <div class="kpi-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- MAPA INTERATIVO -->
+<section id="leitos-mapa" style="background:var(--bg2)">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-map-location-dot"></i> Mapa Interativo</div>
+    <h2>Distribuição Geográfica</h2>
+    <p class="section-desc">Clique em uma cidade no mapa ou na lista para ver os detalhes de leitos. Os marcadores indicam o nível de oferta em relação à referência da OMS.</p>
+
+    <div class="map-section-grid">
+      <div>
+        <div id="bedsMap"></div>
+        <div class="map-legend">
+          <div class="legend-item"><span class="legend-dot legend-verde"></span> ≥ 3,0 leitos/mil (OMS)</div>
+          <div class="legend-item"><span class="legend-dot legend-amarelo"></span> 2,0–2,9 leitos/mil</div>
+          <div class="legend-item"><span class="legend-dot legend-laranja"></span> 1,0–1,9 leitos/mil</div>
+          <div class="legend-item"><span class="legend-dot legend-vermelho"></span> &lt; 1,0 leito/mil</div>
+        </div>
+      </div>
+      <div>
+        <div class="map-panel">
+          <div class="map-panel-header">
+            <h3><i class="fa-solid fa-list"></i> Municípios</h3>
+            <p>Clique para ver detalhes no mapa</p>
+          </div>
+          <div class="map-panel-body" style="max-height:440px;overflow-y:auto" id="cityListPanel"></div>
+        </div>
+      </div>
+    </div>
+
+    <div class="detail-panel fade-in" id="detailPanel" style="display:none">
+      <div style="display:flex;align-items:center;justify-content:space-between;flex-wrap:wrap;gap:12px;margin-bottom:16px">
+        <h3 id="detailTitle">—</h3>
+        <span class="occ-badge" id="detailBadge"></span>
+      </div>
+      <div class="detail-grid">
+        <div class="detail-stat ds-total"><div class="ds-val" id="detailTotal">—</div><div class="ds-lbl">Total de Leitos</div></div>
+        <div class="detail-stat ds-ocupado"><div class="ds-val" id="detailSUS">—</div><div class="ds-lbl">Leitos SUS</div></div>
+        <div class="detail-stat ds-disponivel"><div class="ds-val" id="detailNaoSUS">—</div><div class="ds-lbl">Leitos Não-SUS</div></div>
+      </div>
+      <div class="occ-bar-wrap">
+        <div class="occ-bar-label">
+          <span>Leitos por mil hab.</span>
+          <span id="detailOmsLabel">—</span>
+        </div>
+        <div class="occ-bar-bg">
+          <div class="occ-bar-fill" id="detailOmsBar" style="width:0%"></div>
+        </div>
+      </div>
+      <div style="margin-top:12px;font-size:0.8rem;color:var(--text3)" id="detailInfo"></div>
+    </div>
+  </div>
+</section>
+
+<!-- TABELA LEITOS -->
+<section id="leitos-tabela">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-table-cells"></i> Dados Detalhados</div>
+    <h2>Tabela de Leitos por Município</h2>
+    <p class="section-desc">Comparativo completo de leitos SUS e não-SUS, taxa de cobertura e conformidade com a referência OMS. Use os filtros para análise segmentada.</p>
+
+    <div class="table-controls">
+      <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass"></i>
+        <input type="text" id="leitosSearch" placeholder="Buscar cidade..." />
+      </div>
+      <select class="filter-select" id="leitosRegionFilter">
+        <option value="">Todas as Regiões</option>
+        <option value="Metropolitana">Metropolitana</option>
+        <option value="Central Norte">Central Norte</option>
+        <option value="Sul">Sul</option>
+      </select>
+      <select class="filter-select" id="leitosOmsFilter">
+        <option value="">Todos os Níveis</option>
+        <option value="acima">Acima OMS (≥3/mil)</option>
+        <option value="abaixo">Abaixo OMS (&lt;3/mil)</option>
+        <option value="critico">Crítico (&lt;1/mil)</option>
+        <option value="zero">Sem Leitos</option>
+      </select>
+    </div>
+
+    <div class="leitos-table-wrap">
+      <table class="leitos-table" id="leitosTable">
+        <thead>
+          <tr>
+            <th onclick="sortLeitosTable(0)">Município <span class="sort-icon">⇅</span></th>
+            <th onclick="sortLeitosTable(1)">Região <span class="sort-icon">⇅</span></th>
+            <th onclick="sortLeitosTable(2)">Pop. 2022 <span class="sort-icon">⇅</span></th>
+            <th onclick="sortLeitosTable(3)">Leitos SUS 2023 <span class="sort-icon">⇅</span></th>
+            <th onclick="sortLeitosTable(4)">Leitos Não-SUS <span class="sort-icon">⇅</span></th>
+            <th onclick="sortLeitosTable(5)">Total Leitos <span class="sort-icon">⇅</span></th>
+            <th onclick="sortLeitosTable(6)">Leitos/Mil Hab. <span class="sort-icon">⇅</span></th>
+            <th>Ref. OMS</th>
+          </tr>
+        </thead>
+        <tbody id="leitosTableBody"></tbody>
+      </table>
+      <div class="table-pagination">
+        <div class="page-info" id="leitosPageInfo">Mostrando 1–15 de 78</div>
+        <div class="page-btns" id="leitosPageBtns"></div>
+      </div>
+    </div>
+  </div>
+</section>
+
+<!-- GRÁFICOS LEITOS -->
+<section id="leitos-graficos" style="background:var(--bg2)">
+  <div class="section-inner">
+    <div class="section-label"><i class="fa-solid fa-chart-bar"></i> Análise Visual</div>
+    <h2>Gráficos e Comparativos</h2>
+    <p class="section-desc">Visualizações gráficas dos dados de leitos para identificar padrões regionais e municípios em situação crítica.</p>
+    <div class="chart-grid">
+      <div class="chart-box fade-in">
+        <h3>Leitos por Região de Saúde (Total)</h3>
+        <p>Distribuição total de leitos SUS e não-SUS por região</p>
+        <canvas id="leitosRegionChart"></canvas>
+      </div>
+      <div class="chart-box fade-in">
+        <h3>Municípios vs. Referência OMS</h3>
+        <p>Distribuição dos municípios por faixa de leitos/mil hab.</p>
+        <canvas id="leitosOmsChart"></canvas>
+      </div>
+    </div>
+    <div style="margin-top:24px" class="chart-box fade-in">
+      <h3>Top 15 Municípios — Leitos por Mil Habitantes</h3>
+      <p>Municípios com maior e menor densidade de leitos — a linha vermelha marca a meta OMS de 3/mil</p>
+      <canvas id="leitosCidadesChart" style="max-height:380px"></canvas>
+    </div>
+  </div>
+</section>
+
+</div><!-- end pageLeitos -->
+
+<!-- FOOTER -->
+<footer>
+  <div class="footer-inner">
+    <div class="footer-title"><i class="fa-solid fa-heart-pulse"></i> SaúdeES — Dashboard de Saúde Pública do Espírito Santo</div>
+    <div class="footer-team">
+      Trabalho desenvolvido por estudantes para a disciplina de Análise de Dados em Saúde Pública.<br>
+      <strong>Equipe:</strong> Daniel, Augusto, João, Carlos
+    </div>
+    <div class="footer-source">
+      <i class="fa-solid fa-database"></i> &nbsp;
+      Fontes: <strong>DATASUS / SI-PNI</strong> (vacinação 2019–2022) &nbsp;|&nbsp; <strong>CNES/DATASUS</strong> (leitos 2023) — Ministério da Saúde do Brasil
+    </div>
+  </div>
+</footer>
+
+</main>
+
+<!-- ===== JAVASCRIPT ===== -->
+<script>
+// ===== DADOS VACINAÇÃO =====
+const DATA = [{"municipio":"Afonso Cláudio","regiao_saude":"Metropolitana","populacao":30603,"bcg_2022":95.9,"bcg_pct":95.9,"polio_2019":91.4,"polio_2020":72.8,"polio_2021":73.3,"polio_2022":73.7,"polio_2019_pct":91.4,"polio_2020_pct":72.8,"polio_2021_pct":73.3,"polio_2022_pct":73.7,"meta_cobertura_pct":95.0},{"municipio":"Água Doce do Norte","regiao_saude":"Central Norte","populacao":12402,"bcg_2022":88.4,"bcg_pct":88.4,"polio_2019":91.0,"polio_2020":69.9,"polio_2021":70.8,"polio_2022":54.3,"polio_2019_pct":91.0,"polio_2020_pct":69.9,"polio_2021_pct":70.8,"polio_2022_pct":54.3,"meta_cobertura_pct":95.0},{"municipio":"Águia Branca","regiao_saude":"Central Norte","populacao":9714,"bcg_2022":79.1,"bcg_pct":79.1,"polio_2019":92.6,"polio_2020":81.1,"polio_2021":64.7,"polio_2022":64.0,"polio_2019_pct":92.6,"polio_2020_pct":81.1,"polio_2021_pct":64.7,"polio_2022_pct":64.0,"meta_cobertura_pct":95.0},{"municipio":"Alegre","regiao_saude":"Sul","populacao":31403,"bcg_2022":97.5,"bcg_pct":97.5,"polio_2019":87.3,"polio_2020":87.3,"polio_2021":74.5,"polio_2022":56.8,"polio_2019_pct":87.3,"polio_2020_pct":87.3,"polio_2021_pct":74.5,"polio_2022_pct":56.8,"meta_cobertura_pct":95.0},{"municipio":"Alfredo Chaves","regiao_saude":"Sul","populacao":13836,"bcg_2022":65.9,"bcg_pct":65.9,"polio_2019":108.0,"polio_2020":113.8,"polio_2021":76.8,"polio_2022":134.1,"polio_2019_pct":108.0,"polio_2020_pct":113.8,"polio_2021_pct":76.8,"polio_2022_pct":134.1,"meta_cobertura_pct":95.0},{"municipio":"Alto Rio Novo","regiao_saude":"Central Norte","populacao":7831,"bcg_2022":87.6,"bcg_pct":87.6,"polio_2019":83.5,"polio_2020":69.3,"polio_2021":68.2,"polio_2022":72.8,"polio_2019_pct":83.5,"polio_2020_pct":69.3,"polio_2021_pct":68.2,"polio_2022_pct":72.8,"meta_cobertura_pct":95.0},{"municipio":"Anchieta","regiao_saude":"Sul","populacao":26703,"bcg_2022":89.1,"bcg_pct":89.1,"polio_2019":107.1,"polio_2020":75.0,"polio_2021":81.4,"polio_2022":62.9,"polio_2019_pct":107.1,"polio_2020_pct":75.0,"polio_2021_pct":81.4,"polio_2022_pct":62.9,"meta_cobertura_pct":95.0},{"municipio":"Apiacá","regiao_saude":"Sul","populacao":8203,"bcg_2022":85.8,"bcg_pct":85.8,"polio_2019":87.5,"polio_2020":73.2,"polio_2021":77.5,"polio_2022":60.7,"polio_2019_pct":87.5,"polio_2020_pct":73.2,"polio_2021_pct":77.5,"polio_2022_pct":60.7,"meta_cobertura_pct":95.0},{"municipio":"Aracruz","regiao_saude":"Metropolitana","populacao":108416,"bcg_2022":90.6,"bcg_pct":90.6,"polio_2019":100.9,"polio_2020":85.9,"polio_2021":71.6,"polio_2022":74.1,"polio_2019_pct":100.9,"polio_2020_pct":85.9,"polio_2021_pct":71.6,"polio_2022_pct":74.1,"meta_cobertura_pct":95.0},{"municipio":"Atílio Vivácqua","regiao_saude":"Sul","populacao":10540,"bcg_2022":67.1,"bcg_pct":67.1,"polio_2019":111.4,"polio_2020":95.0,"polio_2021":98.7,"polio_2022":84.2,"polio_2019_pct":111.4,"polio_2020_pct":95.0,"polio_2021_pct":98.7,"polio_2022_pct":84.2,"meta_cobertura_pct":95.0},{"municipio":"Baixo Guandu","regiao_saude":"Central Norte","populacao":29803,"bcg_2022":97.0,"bcg_pct":97.0,"polio_2019":97.5,"polio_2020":83.2,"polio_2021":78.8,"polio_2022":63.3,"polio_2019_pct":97.5,"polio_2020_pct":83.2,"polio_2021_pct":78.8,"polio_2022_pct":63.3,"meta_cobertura_pct":95.0},{"municipio":"Barra de São Francisco","regiao_saude":"Central Norte","populacao":42498,"bcg_2022":56.2,"bcg_pct":56.2,"polio_2019":84.3,"polio_2020":63.9,"polio_2021":92.5,"polio_2022":71.4,"polio_2019_pct":84.3,"polio_2020_pct":63.9,"polio_2021_pct":92.5,"polio_2022_pct":71.4,"meta_cobertura_pct":95.0},{"municipio":"Boa Esperança","regiao_saude":"Central Norte","populacao":19203,"bcg_2022":84.7,"bcg_pct":84.7,"polio_2019":82.6,"polio_2020":72.4,"polio_2021":75.2,"polio_2022":59.4,"polio_2019_pct":82.6,"polio_2020_pct":72.4,"polio_2021_pct":75.2,"polio_2022_pct":59.4,"meta_cobertura_pct":95.0},{"municipio":"Bom Jesus do Norte","regiao_saude":"Sul","populacao":9803,"bcg_2022":83.3,"bcg_pct":83.3,"polio_2019":97.0,"polio_2020":82.0,"polio_2021":65.8,"polio_2022":60.6,"polio_2019_pct":97.0,"polio_2020_pct":82.0,"polio_2021_pct":65.8,"polio_2022_pct":60.6,"meta_cobertura_pct":95.0},{"municipio":"Brejetuba","regiao_saude":"Metropolitana","populacao":12987,"bcg_2022":91.7,"bcg_pct":91.7,"polio_2019":86.9,"polio_2020":70.7,"polio_2021":63.0,"polio_2022":60.1,"polio_2019_pct":86.9,"polio_2020_pct":70.7,"polio_2021_pct":63.0,"polio_2022_pct":60.1,"meta_cobertura_pct":95.0},{"municipio":"Cachoeiro de Itapemirim","regiao_saude":"Sul","populacao":185786,"bcg_2022":72.1,"bcg_pct":72.1,"polio_2019":93.4,"polio_2020":78.2,"polio_2021":73.2,"polio_2022":77.5,"polio_2019_pct":93.4,"polio_2020_pct":78.2,"polio_2021_pct":73.2,"polio_2022_pct":77.5,"meta_cobertura_pct":95.0},{"municipio":"Cariacica","regiao_saude":"Metropolitana","populacao":406542,"bcg_2022":93.2,"bcg_pct":93.2,"polio_2019":91.4,"polio_2020":79.5,"polio_2021":81.0,"polio_2022":71.1,"polio_2019_pct":91.4,"polio_2020_pct":79.5,"polio_2021_pct":81.0,"polio_2022_pct":71.1,"meta_cobertura_pct":95.0},{"municipio":"Castelo","regiao_saude":"Sul","populacao":37803,"bcg_2022":88.0,"bcg_pct":88.0,"polio_2019":88.5,"polio_2020":79.8,"polio_2021":83.1,"polio_2022":75.2,"polio_2019_pct":88.5,"polio_2020_pct":79.8,"polio_2021_pct":83.1,"polio_2022_pct":75.2,"meta_cobertura_pct":95.0},{"municipio":"Colatina","regiao_saude":"Central Norte","populacao":120033,"bcg_2022":56.3,"bcg_pct":56.3,"polio_2019":59.2,"polio_2020":23.9,"polio_2021":53.0,"polio_2022":44.8,"polio_2019_pct":59.2,"polio_2020_pct":23.9,"polio_2021_pct":53.0,"polio_2022_pct":44.8,"meta_cobertura_pct":95.0},{"municipio":"Conceição da Barra","regiao_saude":"Central Norte","populacao":45280,"bcg_2022":94.7,"bcg_pct":94.7,"polio_2019":98.9,"polio_2020":77.9,"polio_2021":76.1,"polio_2022":68.2,"polio_2019_pct":98.9,"polio_2020_pct":77.9,"polio_2021_pct":76.1,"polio_2022_pct":68.2,"meta_cobertura_pct":95.0},{"municipio":"Conceição do Castelo","regiao_saude":"Metropolitana","populacao":17482,"bcg_2022":90.6,"bcg_pct":90.6,"polio_2019":97.5,"polio_2020":81.7,"polio_2021":64.3,"polio_2022":53.6,"polio_2019_pct":97.5,"polio_2020_pct":81.7,"polio_2021_pct":64.3,"polio_2022_pct":53.6,"meta_cobertura_pct":95.0},{"municipio":"Divino de São Lourenço","regiao_saude":"Sul","populacao":5803,"bcg_2022":92.9,"bcg_pct":92.9,"polio_2019":90.7,"polio_2020":70.6,"polio_2021":64.7,"polio_2022":70.3,"polio_2019_pct":90.7,"polio_2020_pct":70.6,"polio_2021_pct":64.7,"polio_2022_pct":70.3,"meta_cobertura_pct":95.0},{"municipio":"Domingos Martins","regiao_saude":"Metropolitana","populacao":35416,"bcg_2022":60.7,"bcg_pct":60.7,"polio_2019":98.9,"polio_2020":107.9,"polio_2021":90.9,"polio_2022":77.1,"polio_2019_pct":98.9,"polio_2020_pct":107.9,"polio_2021_pct":90.9,"polio_2022_pct":77.1,"meta_cobertura_pct":95.0},{"municipio":"Dores do Rio Preto","regiao_saude":"Sul","populacao":7803,"bcg_2022":73.1,"bcg_pct":73.1,"polio_2019":95.9,"polio_2020":82.8,"polio_2021":75.4,"polio_2022":60.8,"polio_2019_pct":95.9,"polio_2020_pct":82.8,"polio_2021_pct":75.4,"polio_2022_pct":60.8,"meta_cobertura_pct":95.0},{"municipio":"Ecoporanga","regiao_saude":"Central Norte","populacao":25314,"bcg_2022":93.6,"bcg_pct":93.6,"polio_2019":98.8,"polio_2020":83.0,"polio_2021":69.3,"polio_2022":73.9,"polio_2019_pct":98.8,"polio_2020_pct":83.0,"polio_2021_pct":69.3,"polio_2022_pct":73.9,"meta_cobertura_pct":95.0},{"municipio":"Fundão","regiao_saude":"Metropolitana","populacao":18014,"bcg_2022":55.9,"bcg_pct":55.9,"polio_2019":96.6,"polio_2020":44.8,"polio_2021":34.5,"polio_2022":79.5,"polio_2019_pct":96.6,"polio_2020_pct":44.8,"polio_2021_pct":34.5,"polio_2022_pct":79.5,"meta_cobertura_pct":95.0},{"municipio":"Governador Lindenberg","regiao_saude":"Central Norte","populacao":11620,"bcg_2022":80.7,"bcg_pct":80.7,"polio_2019":97.2,"polio_2020":76.7,"polio_2021":80.9,"polio_2022":63.4,"polio_2019_pct":97.2,"polio_2020_pct":76.7,"polio_2021_pct":80.9,"polio_2022_pct":63.4,"meta_cobertura_pct":95.0},{"municipio":"Guaçuí","regiao_saude":"Sul","populacao":24603,"bcg_2022":85.0,"bcg_pct":85.0,"polio_2019":96.2,"polio_2020":75.3,"polio_2021":66.2,"polio_2022":62.0,"polio_2019_pct":96.2,"polio_2020_pct":75.3,"polio_2021_pct":66.2,"polio_2022_pct":62.0,"meta_cobertura_pct":95.0},{"municipio":"Guarapari","regiao_saude":"Metropolitana","populacao":124656,"bcg_2022":56.7,"bcg_pct":56.7,"polio_2019":84.4,"polio_2020":65.6,"polio_2021":58.0,"polio_2022":73.1,"polio_2019_pct":84.4,"polio_2020_pct":65.6,"polio_2021_pct":58.0,"polio_2022_pct":73.1,"meta_cobertura_pct":95.0},{"municipio":"Ibatiba","regiao_saude":"Metropolitana","populacao":21304,"bcg_2022":91.1,"bcg_pct":91.1,"polio_2019":93.5,"polio_2020":80.4,"polio_2021":71.2,"polio_2022":72.4,"polio_2019_pct":93.5,"polio_2020_pct":80.4,"polio_2021_pct":71.2,"polio_2022_pct":72.4,"meta_cobertura_pct":95.0},{"municipio":"Ibiraçu","regiao_saude":"Metropolitana","populacao":12890,"bcg_2022":88.1,"bcg_pct":88.1,"polio_2019":85.9,"polio_2020":110.7,"polio_2021":64.2,"polio_2022":71.4,"polio_2019_pct":85.9,"polio_2020_pct":110.7,"polio_2021_pct":64.2,"polio_2022_pct":71.4,"meta_cobertura_pct":95.0},{"municipio":"Ibitirama","regiao_saude":"Sul","populacao":9520,"bcg_2022":71.4,"bcg_pct":71.4,"polio_2019":95.2,"polio_2020":53.3,"polio_2021":24.1,"polio_2022":61.8,"polio_2019_pct":95.2,"polio_2020_pct":53.3,"polio_2021_pct":24.1,"polio_2022_pct":61.8,"meta_cobertura_pct":95.0},{"municipio":"Iconha","regiao_saude":"Sul","populacao":13803,"bcg_2022":85.6,"bcg_pct":85.6,"polio_2019":93.4,"polio_2020":69.2,"polio_2021":65.2,"polio_2022":55.7,"polio_2019_pct":93.4,"polio_2020_pct":69.2,"polio_2021_pct":65.2,"polio_2022_pct":55.7,"meta_cobertura_pct":95.0},{"municipio":"Irupi","regiao_saude":"Sul","populacao":12403,"bcg_2022":86.7,"bcg_pct":86.7,"polio_2019":94.0,"polio_2020":71.3,"polio_2021":73.9,"polio_2022":72.4,"polio_2019_pct":94.0,"polio_2020_pct":71.3,"polio_2021_pct":73.9,"polio_2022_pct":72.4,"meta_cobertura_pct":95.0},{"municipio":"Itaguaçu","regiao_saude":"Metropolitana","populacao":14320,"bcg_2022":91.7,"bcg_pct":91.7,"polio_2019":86.4,"polio_2020":80.4,"polio_2021":65.5,"polio_2022":65.8,"polio_2019_pct":86.4,"polio_2020_pct":80.4,"polio_2021_pct":65.5,"polio_2022_pct":65.8,"meta_cobertura_pct":95.0},{"municipio":"Itapemirim","regiao_saude":"Sul","populacao":39832,"bcg_2022":61.8,"bcg_pct":61.8,"polio_2019":86.3,"polio_2020":83.5,"polio_2021":36.9,"polio_2022":66.1,"polio_2019_pct":86.3,"polio_2020_pct":83.5,"polio_2021_pct":36.9,"polio_2022_pct":66.1,"meta_cobertura_pct":95.0},{"municipio":"Itarana","regiao_saude":"Metropolitana","populacao":11018,"bcg_2022":93.1,"bcg_pct":93.1,"polio_2019":94.0,"polio_2020":85.0,"polio_2021":73.1,"polio_2022":67.6,"polio_2019_pct":94.0,"polio_2020_pct":85.0,"polio_2021_pct":73.1,"polio_2022_pct":67.6,"meta_cobertura_pct":95.0},{"municipio":"Iúna","regiao_saude":"Sul","populacao":23403,"bcg_2022":84.5,"bcg_pct":84.5,"polio_2019":88.0,"polio_2020":78.4,"polio_2021":70.5,"polio_2022":67.4,"polio_2019_pct":88.0,"polio_2020_pct":78.4,"polio_2021_pct":70.5,"polio_2022_pct":67.4,"meta_cobertura_pct":95.0},{"municipio":"Jaguaré","regiao_saude":"Central Norte","populacao":27503,"bcg_2022":96.2,"bcg_pct":96.2,"polio_2019":89.9,"polio_2020":80.4,"polio_2021":71.2,"polio_2022":65.5,"polio_2019_pct":89.9,"polio_2020_pct":80.4,"polio_2021_pct":71.2,"polio_2022_pct":65.5,"meta_cobertura_pct":95.0},{"municipio":"Jerônimo Monteiro","regiao_saude":"Sul","populacao":11803,"bcg_2022":91.3,"bcg_pct":91.3,"polio_2019":92.1,"polio_2020":81.6,"polio_2021":80.3,"polio_2022":60.5,"polio_2019_pct":92.1,"polio_2020_pct":81.6,"polio_2021_pct":80.3,"polio_2022_pct":60.5,"meta_cobertura_pct":95.0},{"municipio":"João Neiva","regiao_saude":"Central Norte","populacao":14079,"bcg_2022":50.0,"bcg_pct":50.0,"polio_2019":93.3,"polio_2020":76.8,"polio_2021":113.5,"polio_2022":75.0,"polio_2019_pct":93.3,"polio_2020_pct":76.8,"polio_2021_pct":113.5,"polio_2022_pct":75.0,"meta_cobertura_pct":95.0},{"municipio":"Laranja da Terra","regiao_saude":"Metropolitana","populacao":11640,"bcg_2022":84.0,"bcg_pct":84.0,"polio_2019":96.5,"polio_2020":80.4,"polio_2021":70.5,"polio_2022":67.3,"polio_2019_pct":96.5,"polio_2020_pct":80.4,"polio_2021_pct":70.5,"polio_2022_pct":67.3,"meta_cobertura_pct":95.0},{"municipio":"Linhares","regiao_saude":"Central Norte","populacao":166786,"bcg_2022":18.4,"bcg_pct":18.4,"polio_2019":65.5,"polio_2020":73.1,"polio_2021":61.5,"polio_2022":83.0,"polio_2019_pct":65.5,"polio_2020_pct":73.1,"polio_2021_pct":61.5,"polio_2022_pct":83.0,"meta_cobertura_pct":95.0},{"municipio":"Mantenópolis","regiao_saude":"Central Norte","populacao":12770,"bcg_2022":28.7,"bcg_pct":28.7,"polio_2019":105.2,"polio_2020":96.6,"polio_2021":93.3,"polio_2022":50.8,"polio_2019_pct":105.2,"polio_2020_pct":96.6,"polio_2021_pct":93.3,"polio_2022_pct":50.8,"meta_cobertura_pct":95.0},{"municipio":"Marataízes","regiao_saude":"Sul","populacao":39203,"bcg_2022":93.1,"bcg_pct":93.1,"polio_2019":89.5,"polio_2020":85.6,"polio_2021":67.7,"polio_2022":55.7,"polio_2019_pct":89.5,"polio_2020_pct":85.6,"polio_2021_pct":67.7,"polio_2022_pct":55.7,"meta_cobertura_pct":95.0},{"municipio":"Marechal Floriano","regiao_saude":"Metropolitana","populacao":16214,"bcg_2022":94.5,"bcg_pct":94.5,"polio_2019":82.5,"polio_2020":83.0,"polio_2021":66.2,"polio_2022":68.3,"polio_2019_pct":82.5,"polio_2020_pct":83.0,"polio_2021_pct":66.2,"polio_2022_pct":68.3,"meta_cobertura_pct":95.0},{"municipio":"Marilândia","regiao_saude":"Central Norte","populacao":11402,"bcg_2022":90.9,"bcg_pct":90.9,"polio_2019":88.6,"polio_2020":70.1,"polio_2021":67.1,"polio_2022":61.7,"polio_2019_pct":88.6,"polio_2020_pct":70.1,"polio_2021_pct":67.1,"polio_2022_pct":61.7,"meta_cobertura_pct":95.0},{"municipio":"Mimoso do Sul","regiao_saude":"Sul","populacao":26803,"bcg_2022":86.7,"bcg_pct":86.7,"polio_2019":93.1,"polio_2020":83.3,"polio_2021":67.8,"polio_2022":67.9,"polio_2019_pct":93.1,"polio_2020_pct":83.3,"polio_2021_pct":67.8,"polio_2022_pct":67.9,"meta_cobertura_pct":95.0},{"municipio":"Montanha","regiao_saude":"Central Norte","populacao":18900,"bcg_2022":87.8,"bcg_pct":87.8,"polio_2019":91.1,"polio_2020":101.8,"polio_2021":95.9,"polio_2022":137.4,"polio_2019_pct":91.1,"polio_2020_pct":101.8,"polio_2021_pct":95.9,"polio_2022_pct":137.4,"meta_cobertura_pct":95.0},{"municipio":"Mucurici","regiao_saude":"Central Norte","populacao":7803,"bcg_2022":83.8,"bcg_pct":83.8,"polio_2019":85.9,"polio_2020":70.2,"polio_2021":72.2,"polio_2022":69.0,"polio_2019_pct":85.9,"polio_2020_pct":70.2,"polio_2021_pct":72.2,"polio_2022_pct":69.0,"meta_cobertura_pct":95.0},{"municipio":"Muniz Freire","regiao_saude":"Sul","populacao":18153,"bcg_2022":89.6,"bcg_pct":89.6,"polio_2019":94.6,"polio_2020":105.8,"polio_2021":82.6,"polio_2022":94.2,"polio_2019_pct":94.6,"polio_2020_pct":105.8,"polio_2021_pct":82.6,"polio_2022_pct":94.2,"meta_cobertura_pct":95.0},{"municipio":"Muqui","regiao_saude":"Sul","populacao":14603,"bcg_2022":89.4,"bcg_pct":89.4,"polio_2019":92.8,"polio_2020":74.3,"polio_2021":73.0,"polio_2022":57.8,"polio_2019_pct":92.8,"polio_2020_pct":74.3,"polio_2021_pct":73.0,"polio_2022_pct":57.8,"meta_cobertura_pct":95.0},{"municipio":"Nova Venécia","regiao_saude":"Central Norte","populacao":47214,"bcg_2022":84.5,"bcg_pct":84.5,"polio_2019":100.4,"polio_2020":78.2,"polio_2021":71.6,"polio_2022":74.2,"polio_2019_pct":100.4,"polio_2020_pct":78.2,"polio_2021_pct":71.6,"polio_2022_pct":74.2,"meta_cobertura_pct":95.0},{"municipio":"Pancas","regiao_saude":"Central Norte","populacao":22814,"bcg_2022":85.1,"bcg_pct":85.1,"polio_2019":93.8,"polio_2020":73.9,"polio_2021":72.5,"polio_2022":58.8,"polio_2019_pct":93.8,"polio_2020_pct":73.9,"polio_2021_pct":72.5,"polio_2022_pct":58.8,"meta_cobertura_pct":95.0},{"municipio":"Pedro Canário","regiao_saude":"Central Norte","populacao":26503,"bcg_2022":87.8,"bcg_pct":87.8,"polio_2019":100.6,"polio_2020":76.8,"polio_2021":68.5,"polio_2022":57.2,"polio_2019_pct":100.6,"polio_2020_pct":76.8,"polio_2021_pct":68.5,"polio_2022_pct":57.2,"meta_cobertura_pct":95.0},{"municipio":"Pinheiros","regiao_saude":"Central Norte","populacao":24803,"bcg_2022":90.4,"bcg_pct":90.4,"polio_2019":87.8,"polio_2020":71.7,"polio_2021":66.5,"polio_2022":59.9,"polio_2019_pct":87.8,"polio_2020_pct":71.7,"polio_2021_pct":66.5,"polio_2022_pct":59.9,"meta_cobertura_pct":95.0},{"municipio":"Piúma","regiao_saude":"Sul","populacao":24603,"bcg_2022":93.4,"bcg_pct":93.4,"polio_2019":95.8,"polio_2020":71.8,"polio_2021":81.2,"polio_2022":70.2,"polio_2019_pct":95.8,"polio_2020_pct":71.8,"polio_2021_pct":81.2,"polio_2022_pct":70.2,"meta_cobertura_pct":95.0},{"municipio":"Ponto Belo","regiao_saude":"Central Norte","populacao":8904,"bcg_2022":84.4,"bcg_pct":84.4,"polio_2019":86.7,"polio_2020":73.3,"polio_2021":65.0,"polio_2022":63.6,"polio_2019_pct":86.7,"polio_2020_pct":73.3,"polio_2021_pct":65.0,"polio_2022_pct":63.6,"meta_cobertura_pct":95.0},{"municipio":"Presidente Kennedy","regiao_saude":"Sul","populacao":11203,"bcg_2022":82.3,"bcg_pct":82.3,"polio_2019":86.4,"polio_2020":78.4,"polio_2021":66.7,"polio_2022":66.3,"polio_2019_pct":86.4,"polio_2020_pct":78.4,"polio_2021_pct":66.7,"polio_2022_pct":66.3,"meta_cobertura_pct":95.0},{"municipio":"Rio Bananal","regiao_saude":"Central Norte","populacao":19274,"bcg_2022":56.6,"bcg_pct":56.6,"polio_2019":114.4,"polio_2020":154.0,"polio_2021":88.1,"polio_2022":102.2,"polio_2019_pct":114.4,"polio_2020_pct":154.0,"polio_2021_pct":88.1,"polio_2022_pct":102.2,"meta_cobertura_pct":95.0},{"municipio":"Rio Novo do Sul","regiao_saude":"Sul","populacao":12603,"bcg_2022":83.9,"bcg_pct":83.9,"polio_2019":81.8,"polio_2020":76.0,"polio_2021":79.9,"polio_2022":89.2,"polio_2019_pct":81.8,"polio_2020_pct":76.0,"polio_2021_pct":79.9,"polio_2022_pct":89.2,"meta_cobertura_pct":95.0},{"municipio":"Santa Leopoldina","regiao_saude":"Metropolitana","populacao":13076,"bcg_2022":91.0,"bcg_pct":91.0,"polio_2019":92.6,"polio_2020":83.7,"polio_2021":78.5,"polio_2022":71.3,"polio_2019_pct":92.6,"polio_2020_pct":83.7,"polio_2021_pct":78.5,"polio_2022_pct":71.3,"meta_cobertura_pct":95.0},{"municipio":"Santa Maria de Jetibá","regiao_saude":"Metropolitana","populacao":40242,"bcg_2022":93.6,"bcg_pct":93.6,"polio_2019":90.7,"polio_2020":81.1,"polio_2021":78.5,"polio_2022":56.6,"polio_2019_pct":90.7,"polio_2020_pct":81.1,"polio_2021_pct":78.5,"polio_2022_pct":56.6,"meta_cobertura_pct":95.0},{"municipio":"Santa Teresa","regiao_saude":"Metropolitana","populacao":24390,"bcg_2022":96.0,"bcg_pct":96.0,"polio_2019":94.7,"polio_2020":70.7,"polio_2021":68.2,"polio_2022":62.1,"polio_2019_pct":94.7,"polio_2020_pct":70.7,"polio_2021_pct":68.2,"polio_2022_pct":62.1,"meta_cobertura_pct":95.0},{"municipio":"São Domingos do Norte","regiao_saude":"Central Norte","populacao":9203,"bcg_2022":92.7,"bcg_pct":92.7,"polio_2019":82.1,"polio_2020":78.0,"polio_2021":64.2,"polio_2022":62.4,"polio_2019_pct":82.1,"polio_2020_pct":78.0,"polio_2021_pct":64.2,"polio_2022_pct":62.4,"meta_cobertura_pct":95.0},{"municipio":"São Gabriel da Palha","regiao_saude":"Central Norte","populacao":38014,"bcg_2022":95.6,"bcg_pct":95.6,"polio_2019":93.3,"polio_2020":85.3,"polio_2021":70.5,"polio_2022":60.7,"polio_2019_pct":93.3,"polio_2020_pct":85.3,"polio_2021_pct":70.5,"polio_2022_pct":60.7,"meta_cobertura_pct":95.0},{"municipio":"São José do Calçado","regiao_saude":"Sul","populacao":10203,"bcg_2022":90.9,"bcg_pct":90.9,"polio_2019":85.2,"polio_2020":73.5,"polio_2021":72.2,"polio_2022":57.5,"polio_2019_pct":85.2,"polio_2020_pct":73.5,"polio_2021_pct":72.2,"polio_2022_pct":57.5,"meta_cobertura_pct":95.0},{"municipio":"São Mateus","regiao_saude":"Central Norte","populacao":131491,"bcg_2022":89.6,"bcg_pct":89.6,"polio_2019":96.5,"polio_2020":73.5,"polio_2021":75.1,"polio_2022":65.5,"polio_2019_pct":96.5,"polio_2020_pct":73.5,"polio_2021_pct":75.1,"polio_2022_pct":65.5,"meta_cobertura_pct":95.0},{"municipio":"São Roque do Canaã","regiao_saude":"Central Norte","populacao":10886,"bcg_2022":73.6,"bcg_pct":73.6,"polio_2019":118.9,"polio_2020":117.9,"polio_2021":106.4,"polio_2022":111.1,"polio_2019_pct":118.9,"polio_2020_pct":117.9,"polio_2021_pct":106.4,"polio_2022_pct":111.1,"meta_cobertura_pct":95.0},{"municipio":"Serra","regiao_saude":"Metropolitana","populacao":529583,"bcg_2022":87.0,"bcg_pct":87.0,"polio_2019":101.3,"polio_2020":75.3,"polio_2021":69.9,"polio_2022":72.5,"polio_2019_pct":101.3,"polio_2020_pct":75.3,"polio_2021_pct":69.9,"polio_2022_pct":72.5,"meta_cobertura_pct":95.0},{"municipio":"Sooretama","regiao_saude":"Central Norte","populacao":26503,"bcg_2022":94.5,"bcg_pct":94.5,"polio_2019":92.0,"polio_2020":81.8,"polio_2021":67.4,"polio_2022":74.6,"polio_2019_pct":92.0,"polio_2020_pct":81.8,"polio_2021_pct":67.4,"polio_2022_pct":74.6,"meta_cobertura_pct":95.0},{"municipio":"Vargem Alta","regiao_saude":"Sul","populacao":17803,"bcg_2022":85.1,"bcg_pct":85.1,"polio_2019":84.6,"polio_2020":69.8,"polio_2021":67.6,"polio_2022":59.2,"polio_2019_pct":84.6,"polio_2020_pct":69.8,"polio_2021_pct":67.6,"polio_2022_pct":59.2,"meta_cobertura_pct":95.0},{"municipio":"Venda Nova do Imigrante","regiao_saude":"Sul","populacao":23831,"bcg_2022":82.6,"bcg_pct":82.6,"polio_2019":96.6,"polio_2020":108.8,"polio_2021":92.8,"polio_2022":103.6,"polio_2019_pct":96.6,"polio_2020_pct":108.8,"polio_2021_pct":92.8,"polio_2022_pct":103.6,"meta_cobertura_pct":95.0},{"municipio":"Viana","regiao_saude":"Metropolitana","populacao":79010,"bcg_2022":89.3,"bcg_pct":89.3,"polio_2019":102.7,"polio_2020":75.9,"polio_2021":74.8,"polio_2022":67.1,"polio_2019_pct":102.7,"polio_2020_pct":75.9,"polio_2021_pct":74.8,"polio_2022_pct":67.1,"meta_cobertura_pct":95.0},{"municipio":"Vila Pavão","regiao_saude":"Central Norte","populacao":9403,"bcg_2022":87.9,"bcg_pct":87.9,"polio_2019":83.6,"polio_2020":79.8,"polio_2021":75.4,"polio_2022":64.0,"polio_2019_pct":83.6,"polio_2020_pct":79.8,"polio_2021_pct":75.4,"polio_2022_pct":64.0,"meta_cobertura_pct":95.0},{"municipio":"Vila Valério","regiao_saude":"Central Norte","populacao":13728,"bcg_2022":59.5,"bcg_pct":59.5,"polio_2019":102.5,"polio_2020":97.5,"polio_2021":100.4,"polio_2022":74.4,"polio_2019_pct":102.5,"polio_2020_pct":97.5,"polio_2021_pct":100.4,"polio_2022_pct":74.4,"meta_cobertura_pct":95.0},{"municipio":"Vila Velha","regiao_saude":"Metropolitana","populacao":506395,"bcg_2022":86.4,"bcg_pct":86.4,"polio_2019":94.0,"polio_2020":80.6,"polio_2021":70.4,"polio_2022":64.0,"polio_2019_pct":94.0,"polio_2020_pct":80.6,"polio_2021_pct":70.4,"polio_2022_pct":64.0,"meta_cobertura_pct":95.0},{"municipio":"Vitória","regiao_saude":"Metropolitana","populacao":322869,"bcg_2022":55.1,"bcg_pct":55.1,"polio_2019":91.0,"polio_2020":81.0,"polio_2021":78.1,"polio_2022":77.5,"polio_2019_pct":91.0,"polio_2020_pct":81.0,"polio_2021_pct":78.1,"polio_2022_pct":77.5,"meta_cobertura_pct":95.0}];
+
+// ===== DADOS LEITOS =====
+const LEITOS = [
+  {municipio:"Afonso Cláudio",regiao:"Metropolitana",populacao:30603,sus2019:44,sus2021:46,sus2023:45,naoSus2023:19,total:64,leitosMil:2.09,lat:-20.0756,lng:-41.1186},
+  {municipio:"Água Doce do Norte",regiao:"Central Norte",populacao:12402,sus2019:10,sus2021:11,sus2023:11,naoSus2023:1,total:12,leitosMil:0.97,lat:-18.5428,lng:-40.9781},
+  {municipio:"Águia Branca",regiao:"Central Norte",populacao:9714,sus2019:7,sus2021:7,sus2023:10,naoSus2023:1,total:11,leitosMil:1.13,lat:-18.9889,lng:-40.7308},
+  {municipio:"Alegre",regiao:"Sul",populacao:31403,sus2019:38,sus2021:37,sus2023:35,naoSus2023:7,total:42,leitosMil:1.34,lat:-20.7622,lng:-41.5322},
+  {municipio:"Alfredo Chaves",regiao:"Sul",populacao:13836,sus2019:0,sus2021:0,sus2023:0,naoSus2023:0,total:0,leitosMil:0,lat:-20.6339,lng:-40.7558},
+  {municipio:"Alto Rio Novo",regiao:"Central Norte",populacao:7831,sus2019:7,sus2021:7,sus2023:6,naoSus2023:0,total:6,leitosMil:0.77,lat:-19.0725,lng:-41.0281},
+  {municipio:"Anchieta",regiao:"Sul",populacao:26703,sus2019:29,sus2021:29,sus2023:28,naoSus2023:5,total:33,leitosMil:1.24,lat:-20.8064,lng:-40.6442},
+  {municipio:"Apiacá",regiao:"Sul",populacao:8203,sus2019:9,sus2021:7,sus2023:7,naoSus2023:2,total:9,leitosMil:1.10,lat:-21.1578,lng:-41.3631},
+  {municipio:"Aracruz",regiao:"Metropolitana",populacao:108416,sus2019:166,sus2021:160,sus2023:159,naoSus2023:69,total:228,leitosMil:2.10,lat:-19.8194,lng:-40.2758},
+  {municipio:"Atílio Vivácqua",regiao:"Sul",populacao:12060,sus2019:10,sus2021:10,sus2023:11,naoSus2023:0,total:11,leitosMil:0.91,lat:-20.9292,lng:-41.2033},
+  {municipio:"Baixo Guandu",regiao:"Central Norte",populacao:29803,sus2019:28,sus2021:23,sus2023:27,naoSus2023:5,total:32,leitosMil:1.07,lat:-19.5194,lng:-41.0183},
+  {municipio:"Barra de São Francisco",regiao:"Central Norte",populacao:42498,sus2019:61,sus2021:61,sus2023:61,naoSus2023:0,total:61,leitosMil:1.44,lat:-18.7561,lng:-40.8936},
+  {municipio:"Boa Esperança",regiao:"Central Norte",populacao:19203,sus2019:17,sus2021:16,sus2023:17,naoSus2023:1,total:18,leitosMil:0.94,lat:-18.5408,lng:-40.2961},
+  {municipio:"Bom Jesus do Norte",regiao:"Sul",populacao:9803,sus2019:10,sus2021:9,sus2023:10,naoSus2023:3,total:13,leitosMil:1.33,lat:-21.1197,lng:-41.6697},
+  {municipio:"Brejetuba",regiao:"Metropolitana",populacao:12987,sus2019:17,sus2021:21,sus2023:20,naoSus2023:9,total:29,leitosMil:2.23,lat:-20.1544,lng:-41.2892},
+  {municipio:"Cachoeiro de Itapemirim",regiao:"Sul",populacao:185784,sus2019:354,sus2021:482,sus2023:20,naoSus2023:9,total:29,leitosMil:0.16,lat:-20.8481,lng:-41.1131},
+  {municipio:"Cariacica",regiao:"Metropolitana",populacao:406542,sus2019:618,sus2021:600,sus2023:0,naoSus2023:264,total:264,leitosMil:0.65,lat:-20.2631,lng:-40.4167},
+  {municipio:"Castelo",regiao:"Sul",populacao:37803,sus2019:45,sus2021:44,sus2023:40,naoSus2023:9,total:49,leitosMil:1.30,lat:-20.6053,lng:-41.2036},
+  {municipio:"Colatina",regiao:"Central Norte",populacao:119992,sus2019:336,sus2021:356,sus2023:40,naoSus2023:9,total:49,leitosMil:0.41,lat:-19.5394,lng:-40.6294},
+  {municipio:"Conceição da Barra",regiao:"Central Norte",populacao:45280,sus2019:40,sus2021:40,sus2023:39,naoSus2023:5,total:44,leitosMil:0.97,lat:-18.5919,lng:-39.7358},
+  {municipio:"Conceição do Castelo",regiao:"Metropolitana",populacao:17482,sus2019:26,sus2021:23,sus2023:26,naoSus2023:10,total:36,leitosMil:2.06,lat:-20.3797,lng:-41.2389},
+  {municipio:"Divino de São Lourenço",regiao:"Sul",populacao:5803,sus2019:7,sus2021:5,sus2023:7,naoSus2023:1,total:8,leitosMil:1.38,lat:-20.8925,lng:-41.6797},
+  {municipio:"Domingos Martins",regiao:"Metropolitana",populacao:33551,sus2019:93,sus2021:95,sus2023:95,naoSus2023:7,total:102,leitosMil:3.04,lat:-20.3614,lng:-40.6611},
+  {municipio:"Dores do Rio Preto",regiao:"Sul",populacao:7803,sus2019:8,sus2021:10,sus2023:6,naoSus2023:0,total:6,leitosMil:0.77,lat:-20.6964,lng:-41.8469},
+  {municipio:"Ecoporanga",regiao:"Central Norte",populacao:25314,sus2019:23,sus2021:19,sus2023:21,naoSus2023:4,total:25,leitosMil:0.99,lat:-18.3711,lng:-40.8311},
+  {municipio:"Fundão",regiao:"Metropolitana",populacao:21194,sus2019:11,sus2021:11,sus2023:21,naoSus2023:4,total:25,leitosMil:1.18,lat:-19.9281,lng:-40.4061},
+  {municipio:"Governador Lindenberg",regiao:"Central Norte",populacao:11620,sus2019:9,sus2021:10,sus2023:11,naoSus2023:0,total:11,leitosMil:0.95,lat:-19.3425,lng:-40.7525},
+  {municipio:"Guaçuí",regiao:"Sul",populacao:24603,sus2019:26,sus2021:25,sus2023:26,naoSus2023:7,total:33,leitosMil:1.34,lat:-20.7711,lng:-41.6839},
+  {municipio:"Guarapari",regiao:"Metropolitana",populacao:124656,sus2019:59,sus2021:59,sus2023:58,naoSus2023:12,total:70,leitosMil:0.56,lat:-20.6719,lng:-40.4981},
+  {municipio:"Ibatiba",regiao:"Metropolitana",populacao:21304,sus2019:30,sus2021:32,sus2023:29,naoSus2023:14,total:43,leitosMil:2.02,lat:-20.2353,lng:-41.5122},
+  {municipio:"Ibiraçu",regiao:"Metropolitana",populacao:12890,sus2019:21,sus2021:20,sus2023:19,naoSus2023:9,total:28,leitosMil:2.17,lat:-19.8308,lng:-40.3547},
+  {municipio:"Ibitirama",regiao:"Sul",populacao:9550,sus2019:0,sus2021:0,sus2023:0,naoSus2023:0,total:0,leitosMil:0,lat:-20.5256,lng:-41.6839},
+  {municipio:"Iconha",regiao:"Sul",populacao:13803,sus2019:13,sus2021:14,sus2023:13,naoSus2023:4,total:17,leitosMil:1.23,lat:-20.7897,lng:-40.8147},
+  {municipio:"Irupi",regiao:"Sul",populacao:12403,sus2019:13,sus2021:13,sus2023:14,naoSus2023:2,total:16,leitosMil:1.29,lat:-20.3392,lng:-41.6353},
+  {municipio:"Itaguaçu",regiao:"Metropolitana",populacao:14320,sus2019:20,sus2021:23,sus2023:21,naoSus2023:9,total:30,leitosMil:2.09,lat:-19.8019,lng:-40.8647},
+  {municipio:"Itapemirim",regiao:"Sul",populacao:34493,sus2019:120,sus2021:84,sus2023:14,naoSus2023:2,total:16,leitosMil:0.46,lat:-21.0086,lng:-40.8336},
+  {municipio:"Itarana",regiao:"Metropolitana",populacao:11018,sus2019:18,sus2021:14,sus2023:13,naoSus2023:7,total:20,leitosMil:1.82,lat:-19.8731,lng:-40.8761},
+  {municipio:"Iúna",regiao:"Sul",populacao:23403,sus2019:25,sus2021:24,sus2023:24,naoSus2023:6,total:30,leitosMil:1.28,lat:-20.3539,lng:-41.5353},
+  {municipio:"Jaguaré",regiao:"Central Norte",populacao:27503,sus2019:25,sus2021:23,sus2023:24,naoSus2023:3,total:27,leitosMil:0.98,lat:-18.9117,lng:-40.0847},
+  {municipio:"Jerônimo Monteiro",regiao:"Sul",populacao:11803,sus2019:13,sus2021:15,sus2023:12,naoSus2023:3,total:15,leitosMil:1.27,lat:-20.7917,lng:-41.3969},
+  {municipio:"João Neiva",regiao:"Metropolitana",populacao:16187,sus2019:32,sus2021:33,sus2023:24,naoSus2023:3,total:27,leitosMil:1.67,lat:-19.7569,lng:-40.3869},
+  {municipio:"Laranja da Terra",regiao:"Metropolitana",populacao:11640,sus2019:16,sus2021:15,sus2023:16,naoSus2023:8,total:24,leitosMil:2.06,lat:-20.0047,lng:-41.0661},
+  {municipio:"Linhares",regiao:"Central Norte",populacao:166786,sus2019:154,sus2021:268,sus2023:33,naoSus2023:18,total:51,leitosMil:0.31,lat:-19.3917,lng:-40.0653},
+  {municipio:"Mantenópolis",regiao:"Central Norte",populacao:12259,sus2019:0,sus2021:0,sus2023:0,naoSus2023:0,total:0,leitosMil:0,lat:-18.8661,lng:-41.1261},
+  {municipio:"Marataízes",regiao:"Sul",populacao:39203,sus2019:45,sus2021:45,sus2023:42,naoSus2023:10,total:52,leitosMil:1.33,lat:-21.0436,lng:-40.8294},
+  {municipio:"Marechal Floriano",regiao:"Metropolitana",populacao:16214,sus2019:154,sus2021:23,sus2023:22,naoSus2023:11,total:33,leitosMil:2.04,lat:-20.4147,lng:-40.6728},
+  {municipio:"Marilândia",regiao:"Central Norte",populacao:11402,sus2019:10,sus2021:10,sus2023:7,naoSus2023:1,total:8,leitosMil:0.70,lat:-19.4117,lng:-40.5431},
+  {municipio:"Mimoso do Sul",regiao:"Sul",populacao:26803,sus2019:31,sus2021:30,sus2023:31,naoSus2023:6,total:37,leitosMil:1.38,lat:-21.0664,lng:-41.3631},
+  {municipio:"Montanha",regiao:"Central Norte",populacao:19128,sus2019:32,sus2021:32,sus2023:22,naoSus2023:11,total:33,leitosMil:1.72,lat:-18.1253,lng:-40.3647},
+  {municipio:"Mucurici",regiao:"Central Norte",populacao:7803,sus2019:7,sus2021:5,sus2023:8,naoSus2023:0,total:8,leitosMil:1.03,lat:-18.0981,lng:-40.5581},
+  {municipio:"Muniz Freire",regiao:"Sul",populacao:17351,sus2019:34,sus2021:30,sus2023:31,naoSus2023:6,total:37,leitosMil:2.13,lat:-20.4653,lng:-41.4069},
+  {municipio:"Muqui",regiao:"Sul",populacao:14603,sus2019:14,sus2021:16,sus2023:15,naoSus2023:2,total:17,leitosMil:1.16,lat:-20.9514,lng:-41.3453},
+  {municipio:"Nova Venécia",regiao:"Central Norte",populacao:47214,sus2019:7,sus2021:39,sus2023:42,naoSus2023:6,total:48,leitosMil:1.02,lat:-18.7119,lng:-40.4056},
+  {municipio:"Pancas",regiao:"Central Norte",populacao:22814,sus2019:20,sus2021:19,sus2023:19,naoSus2023:3,total:22,leitosMil:0.96,lat:-19.2256,lng:-40.8558},
+  {municipio:"Pedro Canário",regiao:"Central Norte",populacao:26503,sus2019:23,sus2021:23,sus2023:21,naoSus2023:3,total:24,leitosMil:0.91,lat:-18.3028,lng:-39.9811},
+  {municipio:"Pinheiros",regiao:"Central Norte",populacao:24803,sus2019:22,sus2021:20,sus2023:19,naoSus2023:2,total:21,leitosMil:0.85,lat:-18.4156,lng:-40.2661},
+  {municipio:"Piúma",regiao:"Sul",populacao:24603,sus2019:30,sus2021:28,sus2023:28,naoSus2023:6,total:34,leitosMil:1.38,lat:-20.8319,lng:-40.7258},
+  {municipio:"Ponto Belo",regiao:"Central Norte",populacao:8904,sus2019:8,sus2021:7,sus2023:6,naoSus2023:1,total:7,leitosMil:0.79,lat:-18.1292,lng:-40.5444},
+  {municipio:"Presidente Kennedy",regiao:"Sul",populacao:11203,sus2019:14,sus2021:11,sus2023:14,naoSus2023:1,total:15,leitosMil:1.34,lat:-21.1053,lng:-41.0436},
+  {municipio:"Rio Bananal",regiao:"Central Norte",populacao:18519,sus2019:26,sus2021:26,sus2023:28,naoSus2023:6,total:34,leitosMil:1.84,lat:-19.2792,lng:-40.3381},
+  {municipio:"Rio Novo do Sul",regiao:"Sul",populacao:12603,sus2019:16,sus2021:15,sus2023:15,naoSus2023:4,total:19,leitosMil:1.51,lat:-20.8661,lng:-40.9436},
+  {municipio:"Santa Leopoldina",regiao:"Metropolitana",populacao:13076,sus2019:21,sus2021:18,sus2023:25,naoSus2023:7,total:32,leitosMil:2.45,lat:-20.0981,lng:-40.5253},
+  {municipio:"Santa Maria de Jetibá",regiao:"Metropolitana",populacao:40242,sus2019:63,sus2021:57,sus2023:59,naoSus2023:26,total:85,leitosMil:2.11,lat:-20.0228,lng:-40.7447},
+  {municipio:"Santa Teresa",regiao:"Metropolitana",populacao:24390,sus2019:38,sus2021:38,sus2023:35,naoSus2023:15,total:50,leitosMil:2.05,lat:-19.9375,lng:-40.5994},
+  {municipio:"São Domingos do Norte",regiao:"Central Norte",populacao:9203,sus2019:9,sus2021:6,sus2023:7,naoSus2023:0,total:7,leitosMil:0.76,lat:-19.1281,lng:-40.6272},
+  {municipio:"São Gabriel da Palha",regiao:"Central Norte",populacao:38014,sus2019:32,sus2021:30,sus2023:30,naoSus2023:4,total:34,leitosMil:0.89,lat:-19.0211,lng:-40.5394},
+  {municipio:"São José do Calçado",regiao:"Sul",populacao:10203,sus2019:12,sus2021:12,sus2023:10,naoSus2023:3,total:13,leitosMil:1.27,lat:-21.0542,lng:-41.6528},
+  {municipio:"São Mateus",regiao:"Central Norte",populacao:131491,sus2019:117,sus2021:115,sus2023:111,naoSus2023:20,total:131,leitosMil:1.00,lat:-18.7161,lng:-39.8578},
+  {municipio:"São Roque do Canaã",regiao:"Central Norte",populacao:10886,sus2019:0,sus2021:0,sus2023:0,naoSus2023:0,total:0,leitosMil:0,lat:-19.7358,lng:-40.6461},
+  {municipio:"Serra",regiao:"Metropolitana",populacao:529583,sus2019:805,sus2021:781,sus2023:765,naoSus2023:343,total:1108,leitosMil:2.09,lat:-20.1286,lng:-40.3072},
+  {municipio:"Sooretama",regiao:"Central Norte",populacao:26503,sus2019:22,sus2021:23,sus2023:17,naoSus2023:0,total:17,leitosMil:0.64,lat:-19.1169,lng:-40.0783},
+  {municipio:"Vargem Alta",regiao:"Sul",populacao:17803,sus2019:18,sus2021:18,sus2023:21,naoSus2023:5,total:26,leitosMil:1.46,lat:-20.6686,lng:-41.0147},
+  {municipio:"Venda Nova do Imigrante",regiao:"Metropolitana",populacao:25330,sus2019:61,sus2021:64,sus2023:69,naoSus2023:15,total:84,leitosMil:3.32,lat:-20.3381,lng:-41.1319},
+  {municipio:"Viana",regiao:"Metropolitana",populacao:79010,sus2019:121,sus2021:118,sus2023:115,naoSus2023:51,total:166,leitosMil:2.10,lat:-20.3931,lng:-40.4936},
+  {municipio:"Vila Pavão",regiao:"Central Norte",populacao:9403,sus2019:8,sus2021:7,sus2023:9,naoSus2023:0,total:9,leitosMil:0.96,lat:-18.6014,lng:-40.6519},
+  {municipio:"Vila Valério",regiao:"Central Norte",populacao:13728,sus2019:0,sus2021:0,sus2023:0,naoSus2023:0,total:0,leitosMil:0,lat:-19.3233,lng:-40.6817},
+  {municipio:"Vila Velha",regiao:"Metropolitana",populacao:506395,sus2019:771,sus2021:750,sus2023:734,naoSus2023:330,total:1064,leitosMil:2.10,lat:-20.3297,lng:-40.2928},
+  {municipio:"Vitória",regiao:"Metropolitana",populacao:358267,sus2019:1214,sus2021:1088,sus2023:1186,naoSus2023:651,total:1837,leitosMil:5.13,lat:-20.3155,lng:-40.3128}
+];
+
+
+// ===== TAB NAVIGATION =====
+function showPage(page) {
+  document.querySelectorAll('.page').forEach(p => p.classList.remove('active'));
+  document.querySelectorAll('.tab-btn').forEach(b => b.classList.remove('active'));
+  document.getElementById('page' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
+  document.getElementById('tab' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
+  document.getElementById('mTab' + page.charAt(0).toUpperCase() + page.slice(1)).classList.add('active');
+  document.getElementById('navLinksVacina').style.display = page === 'vacina' ? 'flex' : 'none';
+  document.getElementById('navLinksLeitos').style.display = page === 'leitos' ? 'flex' : 'none';
+  if (page === 'leitos' && !mapInitialized) {
+    setTimeout(initMap, 200);
+    mapInitialized = true;
+  }
+  window.scrollTo(0,0);
+}
+let mapInitialized = false;
+
+// ===== THEME =====
+const themeBtn = document.getElementById('themeBtn');
+const themeIcon = document.getElementById('themeIcon');
+let darkMode = false;
+themeBtn.addEventListener('click', () => {
+  darkMode = !darkMode;
+  document.documentElement.setAttribute('data-theme', darkMode ? 'dark' : '');
+  themeIcon.className = darkMode ? 'fa-solid fa-sun' : 'fa-solid fa-moon';
+  updateChartColors();
+});
+
+// ===== ANIMATED COUNTERS =====
+function animateCounter(el) {
+  const target = parseFloat(el.dataset.target);
+  const suffix = el.dataset.suffix || '';
+  const duration = 1800;
+  const start = performance.now();
+  const isInt = Number.isInteger(target);
+  function update(now) {
+    const progress = Math.min((now - start) / duration, 1);
+    const ease = 1 - Math.pow(1 - progress, 3);
+    const val = target * ease;
+    el.textContent = (isInt ? Math.round(val) : val.toFixed(1)) + suffix;
+    if (progress < 1) requestAnimationFrame(update);
+  }
+  requestAnimationFrame(update);
+}
+setTimeout(() => document.querySelectorAll('.counter').forEach(el => animateCounter(el)), 400);
+
+// ===== PROGRESS BARS =====
+setTimeout(() => {
+  const bcgBar = document.getElementById('bcgBar');
+  const polioBar = document.getElementById('polioBar');
+  if (bcgBar) bcgBar.style.width = '81.9%';
+  if (polioBar) polioBar.style.width = '70.0%';
+}, 600);
+
+// ===== VACINAÇÃO TABLE =====
+let currentPage = 1;
+const perPage = 15;
+let filteredData = [...DATA];
+let sortCol = -1, sortAsc = true;
+
+function getPctClass(pct) {
+  if (pct >= 95) return 'pct-ok';
+  if (pct >= 70) return 'pct-mid';
+  return 'pct-low';
+}
+function getRegionClass(reg) {
+  if (reg === 'Metropolitana') return 'reg-metro';
+  if (reg === 'Central Norte') return 'reg-cn';
+  return 'reg-sul';
+}
+function renderTable() {
+  const tbody = document.getElementById('tableBody');
+  if (!tbody) return;
+  const start = (currentPage - 1) * perPage;
+  const pageData = filteredData.slice(start, start + perPage);
+  tbody.innerHTML = pageData.map(d => {
+    const bcgPct = d.bcg_pct;
+    const bcpctClass = getPctClass(bcgPct);
+    const fillW = Math.min(bcgPct, 100);
+    return `<tr>
+      <td class="td-muni">${d.municipio}</td>
+      <td><span class="td-region ${getRegionClass(d.regiao_saude)}">${d.regiao_saude}</span></td>
+      <td>${d.populacao.toLocaleString('pt-BR')}</td>
+      <td class="pct-cell ${bcpctClass}">${bcgPct.toFixed(1)}%</td>
+      <td class="pct-cell ${getPctClass(d.polio_2019_pct)}">${d.polio_2019_pct.toFixed(1)}%</td>
+      <td class="pct-cell ${getPctClass(d.polio_2020_pct)}">${d.polio_2020_pct.toFixed(1)}%</td>
+      <td class="pct-cell ${getPctClass(d.polio_2021_pct)}">${d.polio_2021_pct.toFixed(1)}%</td>
+      <td class="pct-cell ${getPctClass(d.polio_2022_pct)}">${d.polio_2022_pct.toFixed(1)}%
+        <span class="mini-bar"><span class="mini-bar-fill" style="width:${fillW}%"></span></span>
+      </td>
+    </tr>`;
+  }).join('');
+  const total = filteredData.length;
+  document.getElementById('pageInfo').textContent = `Mostrando ${start+1}–${Math.min(start+perPage,total)} de ${total}`;
+  renderPagination(total);
+}
+function renderPagination(total) {
+  const pages = Math.ceil(total / perPage);
+  const container = document.getElementById('pageBtns');
+  let html = '';
+  html += `<button class="page-btn" onclick="goPage(${Math.max(1,currentPage-1)})"><i class="fa-solid fa-chevron-left"></i></button>`;
+  for (let i = 1; i <= pages; i++) {
+    if (i === 1 || i === pages || Math.abs(i - currentPage) <= 1) {
+      html += `<button class="page-btn ${i===currentPage?'active':''}" onclick="goPage(${i})">${i}</button>`;
+    } else if (Math.abs(i - currentPage) === 2) {
+      html += `<button class="page-btn" disabled>…</button>`;
+    }
+  }
+  html += `<button class="page-btn" onclick="goPage(${Math.min(pages,currentPage+1)})"><i class="fa-solid fa-chevron-right"></i></button>`;
+  container.innerHTML = html;
+}
+function goPage(p) { currentPage = p; renderTable(); }
+function filterTable() {
+  const q = document.getElementById('searchInput').value.toLowerCase();
+  const reg = document.getElementById('regionFilter').value;
+  const cov = document.getElementById('coverageFilter').value;
+  filteredData = DATA.filter(d => {
+    if (q && !d.municipio.toLowerCase().includes(q)) return false;
+    if (reg && d.regiao_saude !== reg) return false;
+    if (cov === 'critico' && d.bcg_pct >= 40) return false;
+    if (cov === 'baixo' && (d.bcg_pct < 40 || d.bcg_pct >= 70)) return false;
+    if (cov === 'medio' && (d.bcg_pct < 70 || d.bcg_pct >= 95)) return false;
+    if (cov === 'meta' && d.bcg_pct < 95) return false;
+    return true;
+  });
+  currentPage = 1;
+  renderTable();
+}
+function sortTable(col) {
+  if (sortCol === col) sortAsc = !sortAsc;
+  else { sortCol = col; sortAsc = true; }
+  const keys = ['municipio','regiao_saude','populacao','bcg_pct','polio_2019_pct','polio_2020_pct','polio_2021_pct','polio_2022_pct'];
+  filteredData.sort((a, b) => {
+    const va = a[keys[col]], vb = b[keys[col]];
+    if (typeof va === 'string') return sortAsc ? va.localeCompare(vb,'pt') : vb.localeCompare(va,'pt');
+    return sortAsc ? va - vb : vb - va;
+  });
+  renderTable();
+}
+document.getElementById('searchInput').addEventListener('input', filterTable);
+document.getElementById('regionFilter').addEventListener('change', filterTable);
+document.getElementById('coverageFilter').addEventListener('change', filterTable);
+renderTable();
+
+// ===== CRITICAL MUNICIPALITIES =====
+function renderCritical() {
+  const worst = [...DATA].sort((a, b) => a.bcg_pct - b.bcg_pct).slice(0, 5);
+  document.getElementById('criticalGrid').innerHTML = worst.map((d, i) => `
+    <div class="crit-card fade-in">
+      <div class="crit-rank">#${i+1} Mais Crítico</div>
+      <div class="crit-name">${d.municipio}</div>
+      <div class="crit-region"><i class="fa-solid fa-location-dot"></i> ${d.regiao_saude}</div>
+      <div class="crit-pct">${d.bcg_pct.toFixed(1)}%</div>
+      <div class="crit-lbl">Cobertura BCG 2022</div>
+      <div class="crit-bar">
+        <div class="crit-bar-bg">
+          <div class="crit-bar-fill" style="width:0%" data-target="${Math.min(d.bcg_pct,100)}"></div>
+        </div>
+      </div>
+      <div style="margin-top:8px;font-size:0.75rem;color:var(--text3)">Pop: ${d.populacao.toLocaleString('pt-BR')}</div>
+    </div>
+  `).join('');
+}
+renderCritical();
+
+// ===== REGIONS =====
+function computeRegionStats() {
+  const regions = {};
+  DATA.forEach(d => {
+    if (!regions[d.regiao_saude]) regions[d.regiao_saude] = { bcg: 0, polio22: 0, count: 0 };
+    regions[d.regiao_saude].bcg += d.bcg_pct;
+    regions[d.regiao_saude].polio22 += d.polio_2022_pct;
+    regions[d.regiao_saude].count++;
+  });
+  Object.keys(regions).forEach(k => {
+    regions[k].bcg_pct = (regions[k].bcg / regions[k].count).toFixed(1);
+    regions[k].polio22_pct = (regions[k].polio22 / regions[k].count).toFixed(1);
+  });
+  return regions;
+}
+function renderRegions() {
+  const stats = computeRegionStats();
+  const colors = {'Metropolitana':'#1565c0','Central Norte':'#00838f','Sul':'#2e7d32'};
+  const icons = {'Metropolitana':'🏙️','Central Norte':'🌿','Sul':'⛰️'};
+  const muni_counts = {'Metropolitana':0,'Central Norte':0,'Sul':0};
+  DATA.forEach(d => muni_counts[d.regiao_saude]++);
+  document.getElementById('regionGrid').innerHTML = Object.entries(stats).map(([name, r]) => {
+    const col = colors[name];
+    return `<div class="region-card fade-in">
+      <div class="region-name">${icons[name]} ${name}</div>
+      <div class="region-sub">${muni_counts[name]} municípios</div>
+      <div class="region-metric">
+        <div class="region-metric-row"><span class="region-metric-label">BCG 2022</span><span class="region-metric-val" style="color:${col}">${r.bcg_pct}%</span></div>
+        <div class="region-bar-bg"><div class="region-bar-fill" style="width:0%;background:${col}" data-target="${Math.min(parseFloat(r.bcg_pct),100)}"></div></div>
+      </div>
+      <div class="region-metric">
+        <div class="region-metric-row"><span class="region-metric-label">Polio 2022</span><span class="region-metric-val" style="color:${col}">${r.polio22_pct}%</span></div>
+        <div class="region-bar-bg"><div class="region-bar-fill" style="width:0%;background:${col}" data-target="${Math.min(parseFloat(r.polio22_pct),100)}"></div></div>
+      </div>
+      <div style="margin-top:12px;padding-top:12px;border-top:1px solid var(--border);font-size:0.76rem;color:var(--text3)">
+        Meta: 95% &nbsp;|&nbsp; Diferença BCG: <strong style="color:var(--danger)">−${(95-parseFloat(r.bcg_pct)).toFixed(1)} pp</strong>
+      </div>
+    </div>`;
+  }).join('');
+}
+renderRegions();
+
+// ===== CHARTS =====
+let chartInstances = {};
+function getChartColors() {
+  const isDark = document.documentElement.getAttribute('data-theme') === 'dark';
+  return {
+    grid: isDark ? 'rgba(255,255,255,0.08)' : 'rgba(0,0,0,0.06)',
+    text: isDark ? '#90b4d4' : '#3a5068',
+    primary: '#1e88e5', accent: '#00acc1',
+    danger: '#e53935', warning: '#ff9800', success: '#43a047',
+  };
+}
+function updateChartColors() {
+  const c = getChartColors();
+  Object.values(chartInstances).forEach(chart => {
+    if (chart.options.scales) {
+      Object.values(chart.options.scales).forEach(scale => {
+        if (scale.grid) scale.grid.color = c.grid;
+        if (scale.ticks) scale.ticks.color = c.text;
+      });
+    }
+    if (chart.options.plugins?.legend?.labels) chart.options.plugins.legend.labels.color = c.text;
+    chart.update();
+  });
+}
+function buildEvolucaoChart() {
+  const c = getChartColors();
+  const years = [2019, 2020, 2021, 2022];
+  const pcts = years.map(yr => (DATA.reduce((a, d) => a + d[`polio_${yr}_pct`], 0) / DATA.length).toFixed(1));
+  chartInstances.evolucao = new Chart(document.getElementById('evolucaoChart').getContext('2d'), {
+    type: 'line',
+    data: {
+      labels: ['2019','2020','2021','2022'],
+      datasets: [{
+        label: 'Cobertura Polio (%)', data: pcts,
+        borderColor: c.primary, backgroundColor: 'rgba(30,136,229,0.12)',
+        borderWidth: 3, pointRadius: 6, pointBackgroundColor: c.primary, fill: true, tension: 0.4,
+      },{
+        label: 'Meta (95%)', data: [95,95,95,95],
+        borderColor: c.danger, borderDash: [6,4], borderWidth: 2, pointRadius: 0, fill: false,
+      }]
+    },
+    options: {
+      responsive: true,
+      plugins: { legend: { labels: { color: c.text, font: { family:'Sora' } } }, tooltip: { callbacks: { label: ctx => ` ${ctx.dataset.label}: ${ctx.raw}%` } } },
+      scales: { y: { min:0, max:110, grid:{color:c.grid}, ticks:{color:c.text,callback:v=>v+'%'} }, x: { grid:{color:c.grid}, ticks:{color:c.text} } }
+    }
+  });
+}
+function buildDistribuicaoChart() {
+  const c = getChartColors();
+  const faixas = [{label:'Crítico (<40%)',count:0,color:c.danger},{label:'Baixo (40–70%)',count:0,color:c.warning},{label:'Médio (70–95%)',count:0,color:c.accent},{label:'Meta (≥95%)',count:0,color:c.success}];
+  DATA.forEach(d => { const p = d.bcg_pct; if(p<40)faixas[0].count++;else if(p<70)faixas[1].count++;else if(p<95)faixas[2].count++;else faixas[3].count++; });
+  chartInstances.dist = new Chart(document.getElementById('distribuicaoChart').getContext('2d'), {
+    type: 'doughnut',
+    data: { labels: faixas.map(f=>f.label), datasets:[{data:faixas.map(f=>f.count),backgroundColor:faixas.map(f=>f.color),borderWidth:0}] },
+    options: { responsive:true, plugins: { legend:{position:'bottom',labels:{color:c.text,font:{family:'Sora',size:12},padding:14}}, tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} municípios`}} } }
+  });
+}
+function buildRegiaoChart() {
+  const c = getChartColors();
+  const stats = computeRegionStats();
+  const labels = Object.keys(stats);
+  chartInstances.regiao = new Chart(document.getElementById('regiaoChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels,
+      datasets: [
+        {label:'BCG 2022 (%)',data:labels.map(l=>parseFloat(stats[l].bcg_pct)),backgroundColor:c.primary,borderRadius:6},
+        {label:'Polio 2022 (%)',data:labels.map(l=>parseFloat(stats[l].polio22_pct)),backgroundColor:c.accent,borderRadius:6},
+        {label:'Meta 95%',data:[95,95,95],type:'line',borderColor:c.danger,borderDash:[5,4],borderWidth:2,pointRadius:0,fill:false},
+      ]
+    },
+    options: {
+      responsive:true,
+      plugins:{legend:{labels:{color:c.text,font:{family:'Sora'}}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}%`}}},
+      scales:{y:{min:0,max:110,grid:{color:c.grid},ticks:{color:c.text,callback:v=>v+'%'}},x:{grid:{color:c.grid},ticks:{color:c.text}}}
+    }
+  });
+}
+buildEvolucaoChart();
+buildDistribuicaoChart();
+buildRegiaoChart();
+
+// ===== LEITOS: KPIs =====
+function calcLeitosKPIs() {
+  const totalLeitos = LEITOS.reduce((s,d) => s + d.total, 0);
+  const totalSUS = LEITOS.reduce((s,d) => s + d.sus2023, 0);
+  const totalNaoSUS = LEITOS.reduce((s,d) => s + d.naoSus2023, 0);
+  const mediaLeitosMil = (LEITOS.reduce((s,d) => s + d.leitosMil, 0) / LEITOS.length).toFixed(2);
+  const abaixoOMS = LEITOS.filter(d => d.leitosMil < 3).length;
+  return { totalLeitos, totalSUS, totalNaoSUS, mediaLeitosMil, abaixoOMS };
+}
+function renderLeitosKPIs() {
+  const k = calcLeitosKPIs();
+  const fmt = n => n.toLocaleString('pt-BR');
+  document.getElementById('kpiTotal').textContent = fmt(k.totalLeitos);
+  document.getElementById('kpiSUS').textContent = fmt(k.totalSUS);
+  document.getElementById('kpiNaoSUS').textContent = fmt(k.totalNaoSUS);
+  document.getElementById('kpiMedia').textContent = k.mediaLeitosMil;
+  document.getElementById('kpiAbaixo').textContent = k.abaixoOMS + '/78';
+  // Hero stats
+  const hTotal = document.getElementById('heroTotalLeitos');
+  const hMil = document.getElementById('heroLeitosMil');
+  const hAbaixo = document.getElementById('heroAbaixoOMS');
+  if (hTotal) hTotal.textContent = fmt(k.totalLeitos);
+  if (hMil) hMil.textContent = k.mediaLeitosMil;
+  if (hAbaixo) hAbaixo.textContent = k.abaixoOMS + '/78';
+}
+renderLeitosKPIs();
+
+// ===== LEITOS: TABLE =====
+let leitosCurrentPage = 1;
+const leitosPerPage = 15;
+let leitosFilteredData = [...LEITOS];
+let leitosSortCol = -1, leitosSortAsc = true;
+
+function getOmsClass(mil) {
+  if (mil === 0) return {badge:'occ-critico',label:'Sem Leitos',icon:'fa-ban'};
+  if (mil >= 3) return {badge:'occ-normal',label:'Acima OMS',icon:'fa-circle-check'};
+  if (mil >= 2) return {badge:'occ-medio',label:'2–3/mil',icon:'fa-circle-minus'};
+  if (mil >= 1) return {badge:'occ-alto',label:'1–2/mil',icon:'fa-triangle-exclamation'};
+  return {badge:'occ-critico',label:'< 1/mil',icon:'fa-circle-xmark'};
+}
+function getLeitosMilBar(mil) {
+  const pct = Math.min((mil / 5) * 100, 100);
+  let cls = '';
+  if (mil >= 3) cls = '';
+  else if (mil >= 2) cls = 'occ-bar-med';
+  else cls = 'occ-bar-high';
+  return `<div style="display:flex;align-items:center;gap:8px">
+    <span style="font-family:'IBM Plex Mono',monospace;font-size:0.82rem;font-weight:700;min-width:38px">${mil.toFixed(2)}</span>
+    <div class="mini-bar" style="width:70px"><span class="mini-bar-fill ${cls}" style="width:${pct}%"></span></div>
+  </div>`;
+}
+function renderLeitosTable() {
+  const tbody = document.getElementById('leitosTableBody');
+  if (!tbody) return;
+  const start = (leitosCurrentPage - 1) * leitosPerPage;
+  const pageData = leitosFilteredData.slice(start, start + leitosPerPage);
+  tbody.innerHTML = pageData.map(d => {
+    const oms = getOmsClass(d.leitosMil);
+    const regClass = d.regiao === 'Metropolitana' ? 'reg-metro' : d.regiao === 'Central Norte' ? 'reg-cn' : 'reg-sul';
+    return `<tr onclick="highlightCity('${d.municipio}')">
+      <td class="td-cidade">${d.municipio}</td>
+      <td><span class="td-region ${regClass}">${d.regiao}</span></td>
+      <td style="font-size:0.82rem">${d.populacao.toLocaleString('pt-BR')}</td>
+      <td style="font-family:'IBM Plex Mono',monospace">${d.sus2023}</td>
+      <td style="font-family:'IBM Plex Mono',monospace">${d.naoSus2023}</td>
+      <td style="font-family:'IBM Plex Mono',monospace;font-weight:700">${d.total}</td>
+      <td>${getLeitosMilBar(d.leitosMil)}</td>
+      <td><span class="occ-badge ${oms.badge}"><i class="fa-solid ${oms.icon}"></i> ${oms.label}</span></td>
+    </tr>`;
+  }).join('');
+  const total = leitosFilteredData.length;
+  document.getElementById('leitosPageInfo').textContent = `Mostrando ${start+1}–${Math.min(start+leitosPerPage,total)} de ${total}`;
+  renderLeitosPagination(total);
+}
+function renderLeitosPagination(total) {
+  const pages = Math.ceil(total / leitosPerPage);
+  const container = document.getElementById('leitosPageBtns');
+  let html = `<button class="page-btn" onclick="leitosGoPage(${Math.max(1,leitosCurrentPage-1)})"><i class="fa-solid fa-chevron-left"></i></button>`;
+  for (let i = 1; i <= pages; i++) {
+    if (i === 1 || i === pages || Math.abs(i - leitosCurrentPage) <= 1)
+      html += `<button class="page-btn ${i===leitosCurrentPage?'active':''}" onclick="leitosGoPage(${i})">${i}</button>`;
+    else if (Math.abs(i - leitosCurrentPage) === 2)
+      html += `<button class="page-btn" disabled>…</button>`;
+  }
+  html += `<button class="page-btn" onclick="leitosGoPage(${Math.min(pages,leitosCurrentPage+1)})"><i class="fa-solid fa-chevron-right"></i></button>`;
+  container.innerHTML = html;
+}
+function leitosGoPage(p) { leitosCurrentPage = p; renderLeitosTable(); }
+function filterLeitosTable() {
+  const q = document.getElementById('leitosSearch').value.toLowerCase();
+  const reg = document.getElementById('leitosRegionFilter').value;
+  const oms = document.getElementById('leitosOmsFilter').value;
+  leitosFilteredData = LEITOS.filter(d => {
+    if (q && !d.municipio.toLowerCase().includes(q)) return false;
+    if (reg && d.regiao !== reg) return false;
+    if (oms === 'acima' && d.leitosMil < 3) return false;
+    if (oms === 'abaixo' && d.leitosMil >= 3) return false;
+    if (oms === 'critico' && d.leitosMil >= 1) return false;
+    if (oms === 'zero' && d.leitosMil > 0) return false;
+    return true;
+  });
+  leitosCurrentPage = 1;
+  renderLeitosTable();
+}
+function sortLeitosTable(col) {
+  if (leitosSortCol === col) leitosSortAsc = !leitosSortAsc;
+  else { leitosSortCol = col; leitosSortAsc = true; }
+  const keys = ['municipio','regiao','populacao','sus2023','naoSus2023','total','leitosMil'];
+  leitosFilteredData.sort((a, b) => {
+    const va = a[keys[col]], vb = b[keys[col]];
+    if (typeof va === 'string') return leitosSortAsc ? va.localeCompare(vb,'pt') : vb.localeCompare(va,'pt');
+    return leitosSortAsc ? va - vb : vb - va;
+  });
+  renderLeitosTable();
+}
+document.getElementById('leitosSearch').addEventListener('input', filterLeitosTable);
+document.getElementById('leitosRegionFilter').addEventListener('change', filterLeitosTable);
+document.getElementById('leitosOmsFilter').addEventListener('change', filterLeitosTable);
+renderLeitosTable();
+
+// ===== LEITOS CHARTS =====
+function buildLeitosCharts() {
+  const c = getChartColors();
+  // By region
+  const regs = {Metropolitana:{sus:0,nao:0},CentralNorte:{sus:0,nao:0},Sul:{sus:0,nao:0}};
+  LEITOS.forEach(d => {
+    const k = d.regiao.replace(' ','');
+    if (regs[k]) { regs[k].sus += d.sus2023; regs[k].nao += d.naoSus2023; }
+  });
+  chartInstances.leitosRegion = new Chart(document.getElementById('leitosRegionChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: ['Metropolitana','Central Norte','Sul'],
+      datasets: [
+        {label:'Leitos SUS',data:[regs.Metropolitana.sus,regs.CentralNorte.sus,regs.Sul.sus],backgroundColor:'#1e88e5',borderRadius:6},
+        {label:'Leitos Não-SUS',data:[regs.Metropolitana.nao,regs.CentralNorte.nao,regs.Sul.nao],backgroundColor:'#00acc1',borderRadius:6},
+      ]
+    },
+    options: {
+      responsive:true,
+      plugins:{legend:{labels:{color:c.text,font:{family:'Sora'}}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw.toLocaleString('pt-BR')}`}}},
+      scales:{y:{grid:{color:c.grid},ticks:{color:c.text}},x:{grid:{color:c.grid},ticks:{color:c.text}}}
+    }
+  });
+  // OMS distribution
+  const bands = [
+    {label:'Sem leitos',count:0,color:'#c62828'},
+    {label:'< 1/mil',count:0,color:'#e53935'},
+    {label:'1–2/mil',count:0,color:'#ff9800'},
+    {label:'2–3/mil',count:0,color:'#ffc107'},
+    {label:'≥ 3/mil (OMS)',count:0,color:'#43a047'},
+  ];
+  LEITOS.forEach(d => {
+    if(d.leitosMil===0) bands[0].count++;
+    else if(d.leitosMil<1) bands[1].count++;
+    else if(d.leitosMil<2) bands[2].count++;
+    else if(d.leitosMil<3) bands[3].count++;
+    else bands[4].count++;
+  });
+  chartInstances.leitosOms = new Chart(document.getElementById('leitosOmsChart').getContext('2d'), {
+    type: 'doughnut',
+    data: {labels:bands.map(b=>b.label),datasets:[{data:bands.map(b=>b.count),backgroundColor:bands.map(b=>b.color),borderWidth:0}]},
+    options: {
+      responsive:true,
+      plugins:{legend:{position:'bottom',labels:{color:c.text,font:{family:'Sora',size:12},padding:14}},tooltip:{callbacks:{label:ctx=>` ${ctx.label}: ${ctx.raw} municípios`}}}
+    }
+  });
+  // Top 15 by leitos/mil
+  const sorted = [...LEITOS].filter(d=>d.total>0).sort((a,b)=>b.leitosMil-a.leitosMil).slice(0,15);
+  const colors15 = sorted.map(d => d.leitosMil >= 3 ? '#43a047' : d.leitosMil >= 2 ? '#ffc107' : d.leitosMil >= 1 ? '#ff9800' : '#e53935');
+  chartInstances.leitosCidades = new Chart(document.getElementById('leitosCidadesChart').getContext('2d'), {
+    type: 'bar',
+    data: {
+      labels: sorted.map(d=>d.municipio),
+      datasets: [
+        {label:'Leitos/Mil Hab.',data:sorted.map(d=>d.leitosMil),backgroundColor:colors15,borderRadius:6},
+        {label:'Meta OMS (3/mil)',data:sorted.map(()=>3),type:'line',borderColor:'#e53935',borderDash:[5,4],borderWidth:2,pointRadius:0,fill:false},
+      ]
+    },
+    options: {
+      indexAxis:'y', responsive:true,
+      plugins:{legend:{labels:{color:c.text,font:{family:'Sora'}}},tooltip:{callbacks:{label:ctx=>` ${ctx.dataset.label}: ${ctx.raw}`}}},
+      scales:{x:{min:0,max:6,grid:{color:c.grid},ticks:{color:c.text}},y:{grid:{color:c.grid},ticks:{color:c.text,font:{size:11}}}}
+    }
+  });
+}
+// Build leitos charts after short delay (page may not be visible yet)
+setTimeout(buildLeitosCharts, 300);
+
+// ===== MAP =====
+let leafletMap = null;
+let mapMarkers = {};
+let activeMarker = null;
+
+function getMarkerColor(mil) {
+  if (mil === 0) return '#c62828';
+  if (mil >= 3) return '#2e7d32';
+  if (mil >= 2) return '#f9a825';
+  if (mil >= 1) return '#e65100';
+  return '#c62828';
+}
+function createMarkerIcon(mil) {
+  const color = getMarkerColor(mil);
+  const size = mil >= 3 ? 16 : mil >= 2 ? 13 : 11;
+  return L.divIcon({
+    className: '',
+    html: `<div style="width:${size}px;height:${size}px;background:${color};border:2px solid white;border-radius:50%;box-shadow:0 2px 6px rgba(0,0,0,0.3);transition:all 0.2s"></div>`,
+    iconSize: [size, size],
+    iconAnchor: [size/2, size/2],
+  });
+}
+
+function initMap() {
+  if (leafletMap) return;
+  leafletMap = L.map('bedsMap', {
+    center: [-19.5, -40.4],
+    zoom: 8,
+    zoomControl: true,
+  });
+  L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+    attribution: '© OpenStreetMap contributors',
+    maxZoom: 18,
+  }).addTo(leafletMap);
+
+  LEITOS.forEach(d => {
+    if (!d.lat || !d.lng) return;
+    const oms = getOmsClass(d.leitosMil);
+    const marker = L.marker([d.lat, d.lng], { icon: createMarkerIcon(d.leitosMil) }).addTo(leafletMap);
+    const popupContent = `<div class="map-popup">
+      <h4>${d.municipio}</h4>
+      <div class="map-popup-row"><span class="map-popup-label">Região</span><span class="map-popup-val">${d.regiao}</span></div>
+      <div class="map-popup-row"><span class="map-popup-label">Total de leitos</span><span class="map-popup-val">${d.total}</span></div>
+      <div class="map-popup-row"><span class="map-popup-label">Leitos SUS 2023</span><span class="map-popup-val">${d.sus2023}</span></div>
+      <div class="map-popup-row"><span class="map-popup-label">Leitos Não-SUS</span><span class="map-popup-val">${d.naoSus2023}</span></div>
+      <div class="map-popup-row"><span class="map-popup-label">Leitos/mil hab.</span><span class="map-popup-val">${d.leitosMil.toFixed(2)}</span></div>
+      <div class="map-popup-row"><span class="map-popup-label">Ref. OMS</span><span class="map-popup-val">${d.leitosMil >= 3 ? '✅ Atende' : '⚠️ Abaixo'}</span></div>
+    </div>`;
+    marker.bindPopup(popupContent, {maxWidth: 240});
+    marker.on('click', () => showCityDetail(d));
+    mapMarkers[d.municipio] = marker;
+  });
+
+  renderCityList();
+}
+
+function renderCityList() {
+  const panel = document.getElementById('cityListPanel');
+  if (!panel) return;
+  const sorted = [...LEITOS].sort((a,b) => b.total - a.total);
+  panel.innerHTML = sorted.map(d => {
+    const color = getMarkerColor(d.leitosMil);
+    return `<div class="map-city-item" onclick="highlightCity('${d.municipio.replace(/'/g,"\\'")}')">
+      <span class="map-city-dot" style="background:${color}"></span>
+      <span class="map-city-name">${d.municipio}</span>
+      <span class="map-city-leitos">${d.total} leitos</span>
+    </div>`;
+  }).join('');
+}
+
+function highlightCity(name) {
+  const d = LEITOS.find(x => x.municipio === name);
+  if (!d) return;
+  showCityDetail(d);
+  if (leafletMap && mapMarkers[name]) {
+    leafletMap.setView([d.lat, d.lng], 11, {animate:true});
+    mapMarkers[name].openPopup();
+  }
+  // Highlight in list
+  document.querySelectorAll('.map-city-item').forEach(el => {
+    el.classList.toggle('selected', el.textContent.includes(name));
+  });
+  // Scroll to detail
+  const detail = document.getElementById('detailPanel');
+  if (detail) detail.scrollIntoView({behavior:'smooth',block:'nearest'});
+}
+
+function showCityDetail(d) {
+  const panel = document.getElementById('detailPanel');
+  if (!panel) return;
+  panel.style.display = 'block';
+  document.getElementById('detailTitle').textContent = d.municipio + ' — ' + d.regiao;
+  const oms = getOmsClass(d.leitosMil);
+  document.getElementById('detailBadge').className = 'occ-badge ' + oms.badge;
+  document.getElementById('detailBadge').innerHTML = `<i class="fa-solid ${oms.icon}"></i> ${oms.label}`;
+  document.getElementById('detailTotal').textContent = d.total;
+  document.getElementById('detailSUS').textContent = d.sus2023;
+  document.getElementById('detailNaoSUS').textContent = d.naoSus2023;
+  const pct = Math.min((d.leitosMil / 5) * 100, 100);
+  document.getElementById('detailOmsLabel').textContent = d.leitosMil.toFixed(2) + ' / 3,0 (OMS)';
+  const bar = document.getElementById('detailOmsBar');
+  bar.className = 'occ-bar-fill' + (d.leitosMil >= 3 ? '' : d.leitosMil >= 2 ? ' occ-bar-med' : ' occ-bar-high');
+  setTimeout(() => { bar.style.width = pct + '%'; }, 100);
+  const pop = d.populacao.toLocaleString('pt-BR');
+  document.getElementById('detailInfo').innerHTML = `<i class="fa-solid fa-users"></i> População: <strong>${pop}</strong> &nbsp;|&nbsp; <i class="fa-solid fa-bed-pulse"></i> SUS 2019: <strong>${d.sus2019}</strong> &nbsp;|&nbsp; SUS 2021: <strong>${d.sus2021}</strong> &nbsp;|&nbsp; SUS 2023: <strong>${d.sus2023}</strong>`;
+}
+
+// ===== SCROLL ANIMATIONS =====
+const observer = new IntersectionObserver((entries) => {
+  entries.forEach(entry => {
+    if (entry.isIntersecting) {
+      entry.target.classList.add('visible');
+      entry.target.querySelectorAll('[data-target]').forEach(el => {
+        setTimeout(() => { el.style.width = el.dataset.target + '%'; }, 200);
+      });
+    }
+  });
+}, { threshold: 0.1 });
+document.querySelectorAll('.fade-in').forEach(el => observer.observe(el));
+
+</script>
+</body>
+</html>
